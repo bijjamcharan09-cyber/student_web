@@ -210,7 +210,7 @@ student_management_system/
 
 1. **Clone or Navigate to the Project**:
    ```bash
-   cd student_management_system
+   cd student_system
    ```
 
 2. **Create and Activate a Virtual Environment** (Optional but recommended):
