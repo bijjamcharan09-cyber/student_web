@@ -1,206 +1,248 @@
-# Student Management System (SMS) - Version 1.0
+# Student Management System (SMS) - Version 2.0
 
-A production-style, modular, and scalable Student Management System built using **Python** and **MySQL**, powered by a pure **Flask API**.
+A production-ready, secure, and modular Student Management System built using **Python**, **Flask**, and **MySQL**, featuring backend-enforced **Role-Based Access Control (RBAC)**, an interactive **Student Analytics Dashboard**, and **Multi-Format Report Exports (JSON, CSV, PDF)**.
 
 ---
 
 ## Table of Contents
-1. [Architecture & Design](#1-architecture--design)
-2. [Database Schema (3NF)](#2-database-schema-3nf)
-3. [Project Folder Structure](#3-project-folder-structure)
-4. [Setup & Installation](#4-setup--installation)
-5. [Database Initialization](#5-database-initialization)
-6. [Running the Application](#6-running-the-application)
-7. [Running the Test Suite](#7-running-the-test-suite)
-8. [API Documentation](#8-api-documentation)
-9. [Key Design Decisions](#9-key-design-decisions)
+1. [What's New in Version 2.0](#1-whats-new-in-version-20)
+2. [Architecture & Design](#2-architecture--design)
+3. [Database Schema (3NF)](#3-database-schema-3nf)
+4. [Project Folder Structure](#4-project-folder-structure)
+5. [Role-Based Access Control (RBAC) Matrix](#5-role-based-access-control-rbac-matrix)
+6. [Pre-Configured Accounts](#6-pre-configured-accounts)
+7. [Setup & Installation](#7-setup--installation)
+8. [Database Initialization & Migration](#8-database-initialization--migration)
+9. [Running the Application](#9-running-the-application)
+10. [Running the Test Suite](#10-running-the-test-suite)
+11. [V2 API Documentation](#11-v2-api-documentation)
+12. [Analytics & Mathematical Engine](#12-analytics--mathematical-engine)
+13. [Report Export Formats](#13-report-export-formats)
 
 ---
 
-## 1. Architecture & Design
+## 1. What's New in Version 2.0
 
-The application follows a clean **Layered Architecture** adhering to the Separation of Concerns (SoC) principle:
+Version 2.0 elevates the system from an open REST utility to an enterprise-grade academic platform with three major pillars:
 
-```
-[ HTTP Requests / Clients ]
-            │
-            ▼
-[ Flask API Layer (Blueprints) ]  <--- Route handling, parameter parsing, HTTP status codes
-            │
-            ▼
-[ Service Layer (Business Logic) ] <--- Validation, GPA/grade calculations, business rules
-            │
-            ▼
-[ Repository / DAO Layer ]       <--- Parameterized SQL queries, data access abstraction
-            │
-            ▼
-[ Database Layer (PyMySQL Pool) ] <--- Connection pooling, ACID transaction context managers
-            │
-            ▼
-[ MySQL 8.0+ Database (3NF) ]    <--- Relational tables, Foreign Keys, Indexes, Constraints
-```
+1. **Role-Based Access Control (RBAC) & IDOR Protection**:
+   - Three distinct roles: **Admin**, **Faculty**, and **Student**.
+   - Backend-enforced authorization via decorators (`@login_required`, `@roles_required`) and object-level scoping functions (`check_student_scope`, `check_subject_management_scope`).
+   - Strict defense against Insecure Direct Object References (IDOR): students cannot inspect or download other students' grades or transcripts.
+   - Dual authentication: Signed HTTP-only session cookies for web browsers and tamper-proof bearer tokens (`itsdangerous`) for API clients.
+   - Universal account self-registration (`/register` and in-dashboard modal) with instant auto-login.
 
-### Core Features:
-- **Student Profiles**: Full personal and academic profiles, enrollment tracking, status management (Active, Inactive, Suspended, Graduated), course enrollment junction table.
-- **Subjects & Departments**: Course codes, credit hours, department categorization, semester assignment.
-- **Semesters**: Academic year tracking, date bounds validation, single active semester enforcement.
-- **Marks & Grading**: Multi-assessment support (Quiz, Assignment, Midterm, Final, Practical), score bounds validation, automatic grade & grade-point calculation, atomic batch marks entry.
-- **Attendance**: Daily tracking (Present, Absent, Late, Excused), duplicate prevention, attendance rate calculation with configurable low-attendance warning alerts.
-- **Reporting & Transcripts**: Credit-weighted semester GPA and Cumulative GPA (CGPA) generation, student academic transcripts, attendance warnings.
+2. **Student Analytics Dashboard**:
+   - Role-specific analytical views calculating metrics dynamically from live MySQL data without hardcoded values.
+   - **Student View**: Subject-wise marks breakdown, overall weighted average, CGPA, attendance rates, best/weakest subject comparisons, and assessment trends.
+   - **Faculty View**: Course load, class averages, pass rates, and student enrollments for assigned subjects.
+   - **Admin View**: Total student count, department distributions, system KPIs, and low-attendance risk alerts.
+   - Zero-division safety: handles missing marks and absent attendance records gracefully.
+
+3. **Multi-Format Reports Center**:
+   - 5 comprehensive reports: Student Academic Transcript, Marks Registry, Attendance Logs, Subject Class Performance, and Semester Term Summary.
+   - Dual-streaming export formats: **Web JSON** (`?format=json`), **RFC 4180 CSV** (`?format=csv`), and **Vector PDF** (`?format=pdf` powered by `reportlab`) with academic headers, data tables, and page counters.
 
 ---
 
-## 2. Database Schema (3NF)
+## 2. Architecture & Design
 
-The database schema is fully normalized to **Third Normal Form (3NF)** with explicit foreign keys, cascade actions, unique constraints, and optimized indexes.
+The application follows a clean **3-Tier Layered Architecture**:
+
+```
+[ Web Browser (Dashboard/Login/Register) / REST API Clients ]
+                          │
+                          ▼
+            [ Security & Auth Guard ]
+    (Session Cookie & Bearer Token Verification, RBAC Check)
+                          │
+                          ▼
+         [ Flask API Layer (Blueprints) ]
+   (Route handling, validation, JSON/CSV/PDF response envelopes)
+                          │
+                          ▼
+        [ Service Layer (Business Logic) ]
+  (Analytics calculations, GPA logic, permissions, ReportLab generation)
+                          │
+                          ▼
+          [ Repository / DAO Layer ]
+  (Parameterized SQL queries, CRUD operations, transaction boundaries)
+                          │
+                          ▼
+          [ PyMySQL Connection Pool ]
+  (ACID transaction context managers, parameter binding)
+                          │
+                          ▼
+         [ MySQL 8.0+ Database (3NF) ]
+  (Relational tables, foreign keys, composite indexes, constraints)
+```
+
+---
+
+## 3. Database Schema (3NF)
+
+The database schema is fully normalized to **Third Normal Form (3NF)** with explicit foreign keys, cascade rules, and indexes. V2 introduces `faculty`, `users`, and `faculty_subjects` without modifying existing V1 tables.
 
 ```mermaid
 erDiagram
-    SEMESTERS ||--o{ SUBJECTS : "contains"
-    SEMESTERS ||--o{ STUDENTS : "current semester"
-    SEMESTERS ||--o{ STUDENT_SUBJECTS : "academic period"
-    SEMESTERS ||--o{ MARKS : "grading period"
-    STUDENTS ||--o{ STUDENT_SUBJECTS : "enrolls"
-    SUBJECTS ||--o{ STUDENT_SUBJECTS : "taken by"
-    STUDENTS ||--o{ MARKS : "earns"
-    SUBJECTS ||--o{ MARKS : "graded for"
-    STUDENTS ||--o{ ATTENDANCE : "logs"
-    SUBJECTS ||--o{ ATTENDANCE : "session for"
+    semesters ||--o{ subjects : "categorizes"
+    semesters ||--o{ students : "current semester"
+    semesters ||--o{ marks : "grading period"
+    students ||--o{ student_subjects : "enrolled in"
+    subjects ||--o{ student_subjects : "has students"
+    students ||--o{ marks : "earns"
+    subjects ||--o{ marks : "evaluated in"
+    students ||--o{ attendance : "logs"
+    subjects ||--o{ attendance : "monitored in"
+    faculty ||--o{ faculty_subjects : "teaches"
+    subjects ||--o{ faculty_subjects : "assigned to"
+    semesters ||--o{ faculty_subjects : "term"
+    users ||--o| students : "student profile"
+    users ||--o| faculty : "faculty profile"
 
-    SEMESTERS {
+    users {
         int id PK
-        varchar name UK
-        tinyint semester_number
-        varchar academic_year
-        date start_date
-        date end_date
+        varchar username UK
+        varchar email UK
+        varchar password_hash
+        enum role "Admin, Faculty, Student"
+        int student_id FK
+        int faculty_id FK
         boolean is_active
         timestamp created_at
         timestamp updated_at
     }
 
-    SUBJECTS {
+    faculty {
         int id PK
-        varchar subject_code UK
-        varchar name
-        decimal credits
-        varchar department
-        int semester_id FK
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    STUDENTS {
-        int id PK
-        varchar roll_number UK
+        varchar faculty_code UK
         varchar first_name
         varchar last_name
         varchar email UK
         varchar phone
-        date date_of_birth
-        enum gender
-        int current_semester_id FK
-        date enrollment_date
-        enum status
-        text address
+        varchar department
+        varchar designation
         timestamp created_at
-        timestamp updated_at
     }
 
-    STUDENT_SUBJECTS {
+    faculty_subjects {
         int id PK
-        int student_id FK
+        int faculty_id FK
         int subject_id FK
         int semester_id FK
-        timestamp enrolled_at
-    }
-
-    MARKS {
-        int id PK
-        int student_id FK
-        int subject_id FK
-        int semester_id FK
-        enum exam_type
-        decimal marks_obtained
-        decimal max_marks
-        varchar remarks
-        timestamp created_at
-        timestamp updated_at
-    }
-
-    ATTENDANCE {
-        int id PK
-        int student_id FK
-        int subject_id FK
-        date date
-        enum status
-        varchar remarks
-        timestamp created_at
+        timestamp assigned_at
     }
 ```
 
 ---
 
-## 3. Project Folder Structure
+## 4. Project Folder Structure
 
 ```
-student_management_system/
-├── .env.example              # Template environment variables
-├── .env                      # Local environment configuration (Git-ignored)
-├── .gitignore                # Production Python/IDE gitignore
-├── requirements.txt          # Python dependencies
-├── config.py                 # Centralized configuration class & env loader
+student_system/
+├── .env.example              # Template environment configuration
+├── .env                      # Local configuration (Git-ignored)
+├── requirements.txt          # Python dependencies (Flask, PyMySQL, reportlab, waitress)
+├── config.py                 # Centralized configuration & environment loader
 ├── run.py                    # Application entry point
 ├── app/
-│   ├── __init__.py           # Flask app factory, blueprints & global error handlers
+│   ├── __init__.py           # Application Factory, Blueprint registration & web routes
 │   ├── db.py                 # Thread-safe MySQL connection & transaction management
-│   ├── api/                  # Pure Flask Blueprints (API endpoints)
+│   ├── api/                  # Flask Blueprints (API endpoints)
 │   │   ├── __init__.py
-│   │   ├── students.py       # Student CRUD, search, filter, enrollment
-│   │   ├── subjects.py       # Subject CRUD, department/semester filter
-│   │   ├── semesters.py      # Semester CRUD, active semester toggle
-│   │   ├── marks.py          # Marks recording, batch transactions
-│   │   ├── attendance.py     # Attendance logging, batch recording, summary
-│   │   └── reports.py        # Academic transcripts, low-attendance alerts
-│   ├── services/             # Business logic layer
+│   │   ├── auth.py           # Login, logout, profile (/me), and signup endpoints
+│   │   ├── analytics.py      # Student, faculty, and overview analytics routes
+│   │   ├── reports.py        # Multi-format reports (JSON, CSV, PDF) with RBAC
+│   │   ├── faculty.py        # Faculty CRUD & course assignment
+│   │   ├── students.py       # Student CRUD & enrollment
+│   │   ├── subjects.py       # Subject CRUD & department filters
+│   │   ├── semesters.py      # Semester CRUD & active term toggle
+│   │   ├── marks.py          # Assessment grading & atomic batch operations
+│   │   └── attendance.py     # Attendance tracking & batch operations
+│   ├── services/             # Business & calculation logic
 │   │   ├── __init__.py
+│   │   ├── auth_service.py   # Password hashing (PBKDF2) & user provisioning
+│   │   ├── analytics_service.py # Dynamic metrics, averages, comparisons & trends
+│   │   ├── report_generator.py  # ReportLab PDF & CSV streaming generator
+│   │   ├── report_service.py # Academic transcript & attendance calculations
 │   │   ├── student_service.py
-│   │   ├── subject_service.py
-│   │   ├── semester_service.py
 │   │   ├── mark_service.py
-│   │   ├── attendance_service.py
-│   │   └── report_service.py
+│   │   └── attendance_service.py
 │   ├── repositories/         # Parameterized SQL data access layer
 │   │   ├── __init__.py
+│   │   ├── user_repo.py      # User authentication queries
+│   │   ├── faculty_repo.py   # Faculty records & teaching assignments
 │   │   ├── student_repo.py
 │   │   ├── subject_repo.py
 │   │   ├── semester_repo.py
 │   │   ├── mark_repo.py
 │   │   └── attendance_repo.py
+│   ├── templates/            # Frontend interfaces
+│   │   ├── dashboard.html    # Interactive V2 Dashboard with role switcher & charts
+│   │   ├── register.html     # Universal role registration page
+│   │   └── login.html        # Dedicated sign-in page
 │   └── utils/                # Cross-cutting utilities
 │       ├── __init__.py
-│       ├── exceptions.py     # Custom exceptions (ConflictError, NotFoundError, etc.)
+│       ├── auth.py           # RBAC decorators, token signing, IDOR validation
+│       ├── exceptions.py     # Custom exceptions (401, 403, 404, 409, 422)
 │       ├── responses.py      # Standardized JSON response envelope
-│       └── validators.py     # Sanitization, regex, and business rule validators
+│       └── validators.py     # Payload validators & parameter sanitization
 ├── schema/
-│   ├── schema.sql            # MySQL DDL with constraints, checks, indexes
-│   ├── seed.sql              # Realistic seed data for testing and demo
-│   └── init_db.py            # CLI script to initialize/reset the MySQL database
-└── tests/                    # Automated test suite (100% passing)
-    ├── conftest.py           # Pytest fixtures and mock in-memory DB adapter
-    ├── test_api_common.py    # Root, health, 404, 405 error handler tests
-    ├── test_students.py      # Student CRUD, search, duplicate checks, enrollment
-    ├── test_subjects.py      # Subject CRUD, code uniqueness, department filters
-    ├── test_semesters.py     # Semester validation, active status tests
-    ├── test_marks.py         # Marks bounds, grade calculation, batch rollback
-    ├── test_attendance.py    # Attendance logging, statistics, batch rollback
-    ├── test_reports.py       # Transcript CGPA calculation, low-attendance alerts
-    └── test_validators.py    # Input validators unit tests
+│   ├── schema.sql            # Base MySQL DDL schema
+│   ├── migrate_v2.py         # Additive V2 migration script (preserves existing data)
+│   ├── seed.sql              # Base seed data
+│   └── init_db.py            # Database initializer script
+└── tests/                    # Automated test suite (42 tests, 100% passing)
+    ├── conftest.py           # SQLite in-memory test database fixture
+    ├── test_v2_features.py   # RBAC, IDOR, analytics, registration & export tests
+    ├── test_api_common.py    # Error handling & status code tests
+    ├── test_students.py      # Student profile & enrollment tests
+    ├── test_subjects.py      # Subject & department tests
+    ├── test_semesters.py     # Semester validation tests
+    ├── test_marks.py         # Marks bounds & batch transaction tests
+    ├── test_attendance.py    # Attendance logging & summary tests
+    ├── test_reports.py       # Transcript & report tests
+    └── test_validators.py    # Validation unit tests
 ```
 
 ---
 
-## 4. Setup & Installation
+## 5. Role-Based Access Control (RBAC) Matrix
+
+| Endpoint | Method | Admin | Faculty | Student | Security Policy |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| `/api/v1/auth/signup` | `POST` | ✅ | ✅ | ✅ | Public self-registration (auto-login enabled) |
+| `/api/v1/auth/login` | `POST` | ✅ | ✅ | ✅ | Public sign-in (session cookie + bearer token) |
+| `/api/v1/auth/me` | `GET` | ✅ | ✅ | ✅ | Authenticated session profile |
+| `/api/v1/faculty/**` | Any | ✅ | ❌ | ❌ | Admin only |
+| `/api/v1/students` | `POST` | ✅ | ❌ | ❌ | Admin only |
+| `/api/v1/students` | `GET` | ✅ | ✅ | ❌ | Students restricted to their own record |
+| `/api/v1/students/<id>` | `GET` | ✅ | ✅* | ✅* | `*` Scoped: Faculty must teach course; Student must own ID |
+| `/api/v1/analytics/student/<id>` | `GET` | ✅ | ✅* | ✅* | `*` IDOR Protection: Students blocked from viewing others |
+| `/api/v1/analytics/student/me` | `GET` | ❌ | ❌ | ✅ | Automatically resolves student ID from session |
+| `/api/v1/analytics/faculty` | `GET` | ✅ | ✅ | ❌ | Shows courses assigned to faculty member |
+| `/api/v1/analytics/overview` | `GET` | ✅ | ❌ | ❌ | System-wide statistics |
+| `/api/v1/reports/academic` | `GET` | ✅ | ✅* | ✅* | Supports `?format=json\|csv\|pdf` with IDOR check |
+| `/api/v1/reports/marks` | `GET` | ✅ | ✅* | ✅* | Supports `?format=json\|csv\|pdf` scoped by role |
+| `/api/v1/reports/attendance` | `GET` | ✅ | ✅* | ✅* | Supports `?format=json\|csv\|pdf` scoped by role |
+| `/api/v1/reports/subject/<id>` | `GET` | ✅ | ✅* | ❌ | `*` Faculty must be assigned to subject |
+| `/api/v1/reports/semester/<id>`| `GET` | ✅ | ✅ | ❌ | Faculty/Admin term statistics |
+
+---
+
+## 6. Pre-Configured Accounts
+
+The V2 migration script initializes three pre-seeded accounts:
+
+| Role | Username | Password | Linked Entity / Permissions |
+| :--- | :--- | :--- | :--- |
+| **Admin** | `admin` | `Admin@123` | Complete administrative access across all modules |
+| **Faculty** | `faculty_turing` | `Faculty@123` | Linked to Faculty ID 1 (Assigned to Subject ID 1) |
+| **Student** | `student_25291a6601` | `Student@123` | Linked to Student `25291A6601` (Bijjam Charan Kumar Reddy) |
+
+---
+
+## 7. Setup & Installation
 
 ### Prerequisites
 - **Python**: Version 3.10 or higher
@@ -208,294 +250,162 @@ student_management_system/
 
 ### Steps
 
-1. **Clone or Navigate to the Project**:
-   ```bash
-   cd student_system
+1. **Navigate to the Directory**:
+   ```powershell
+   cd C:\Users\bijja\student_web\student_system
    ```
 
-2. **Create and Activate a Virtual Environment** (Optional but recommended):
-   ```bash
+2. **Activate Virtual Environment** (Optional):
+   ```powershell
    python -m venv venv
-   # On Windows:
-   venv\Scripts\activate
-   # On Linux/macOS:
-   source venv/bin/activate
+   .\venv\Scripts\activate
    ```
 
 3. **Install Dependencies**:
-   ```bash
+   ```powershell
    pip install -r requirements.txt
    ```
 
-4. **Configure Environment Variables**:
-   Copy `.env.example` to `.env` and configure your MySQL credentials:
+4. **Configure Environment Variables (`.env`)**:
    ```env
    DB_HOST=localhost
    DB_PORT=3306
-   DB_USER=root
-   DB_PASSWORD=your_mysql_password
+   DB_USER=student_app
+   DB_PASSWORD=your_password_here
    DB_NAME=student_management_db
 
    FLASK_ENV=development
-   FLASK_DEBUG=1
+   FLASK_DEBUG=0
    PORT=5000
    SECRET_KEY=your-secure-random-secret-key
    ```
 
 ---
 
-## 5. Database Initialization
+## 8. Database Initialization & Migration
 
-Execute the built-in database setup script:
-
-- **Create database schema only**:
-  ```bash
-  python schema/init_db.py
+- **Apply V2 Additive Migration (Preserves all existing V1 data)**:
+  ```powershell
+  python schema/migrate_v2.py
   ```
+  *Creates `faculty`, `users`, and `faculty_subjects` tables and seeds initial users without altering existing records.*
 
-- **Create database schema and populate with realistic seed data**:
-  ```bash
+- **Fresh Install / Reset (Optional, drops and recreates schema)**:
+  ```powershell
   python schema/init_db.py --seed
   ```
 
-The script will automatically:
-1. Connect to MySQL.
-2. Create the `student_management_db` database if it doesn't already exist.
-3. Apply `schema.sql` (creating tables, check constraints, foreign keys, and indexes).
-4. If `--seed` is passed, populate sample semesters, subjects, students, marks, and attendance.
-
 ---
 
-## 6. Running the Application
+## 9. Running the Application
 
-Start the Flask application server:
-
-```bash
+### Development Mode
+```powershell
 python run.py
 ```
 
-The server will start at `http://localhost:5000`. You can verify health:
-```bash
-curl http://localhost:5000/health
+### Production WSGI Mode (Recommended)
+```powershell
+python -m waitress --port=5000 run:app
 ```
+
+The web dashboard is accessible at:
+- **Interactive Dashboard**: `http://localhost:5000/dashboard`
+- **Universal Registration**: `http://localhost:5000/register`
+- **Sign In Page**: `http://localhost:5000/login`
 
 ---
 
-## 7. Running the Test Suite
+## 10. Running the Test Suite
 
-The project includes 37 automated tests covering unit tests, API endpoints, business logic, validation edge cases, and transaction rollbacks:
+All 42 automated unit and integration tests run out-of-the-box using the SQLite in-memory adapter without requiring an active external MySQL server:
 
-```bash
+```powershell
 python -m pytest -v
 ```
 
-> **Note**: The automated test suite runs out of the box with an in-memory database adapter, meaning tests run immediately without requiring a running MySQL service.
+**Test Coverage Highlights**:
+- Role-based authorization & IDOR defense (`test_v2_rbac_and_idor_protection`)
+- Student analytics calculation engine (`test_v2_analytics_calculations`)
+- Multi-format reports export in JSON, CSV, and PDF (`test_v2_multi_format_reports`)
+- Public user registration & re-login across all roles (`test_v2_public_registration_and_login`)
+- Atomic transaction rollbacks on failure (`test_batch_attendance_transaction_rollback`, `test_batch_record_marks_transaction_rollback`)
 
 ---
 
-## 8. API Documentation
+## 11. V2 API Documentation
 
-All API endpoints return a standardized JSON envelope:
+### Authentication (`/api/v1/auth`)
 
-**Success Response:**
-```json
-{
-  "success": true,
-  "message": "Operation description",
-  "data": { ... },
-  "meta": { ... }
-}
-```
-
-**Error Response:**
-```json
-{
-  "success": false,
-  "error": {
-    "code": "VALIDATION_ERROR | RESOURCE_CONFLICT | NOT_FOUND | BAD_REQUEST",
-    "message": "Human readable error message",
-    "details": { ... }
-  }
-}
-```
+| Endpoint | Method | Payload / Params | Description |
+|---|---|---|---|
+| `/api/v1/auth/signup` | `POST` | `username`, `email`, `password`, `role`, `first_name`, `last_name`, optional `roll_number`/`faculty_code` | Public user registration for all roles. Automatically provisions profiles and logs user in. |
+| `/api/v1/auth/login` | `POST` | `username`, `password` | Authenticates credentials and returns a signed bearer token + session cookie. |
+| `/api/v1/auth/logout` | `POST` | None | Clears the authenticated session. |
+| `/api/v1/auth/me` | `GET` | None | Returns the currently authenticated user's profile and roles. |
+| `/api/v1/auth/register` | `POST` | `username`, `email`, `password`, `role` | Administrator-only account creation endpoint. |
 
 ---
 
-### Student Endpoints (`/api/v1/students`)
+### Analytics (`/api/v1/analytics`)
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/students` | List students with search, status, semester_id, and pagination. |
-| `POST` | `/api/v1/students` | Create a new student profile. |
-| `GET` | `/api/v1/students/<id>` | Get student profile with enrolled subjects. |
-| `PUT` | `/api/v1/students/<id>` | Update student profile fields. |
-| `DELETE` | `/api/v1/students/<id>` | Delete a student profile. |
-| `POST` | `/api/v1/students/<id>/enroll` | Enroll student into a subject for a semester. |
-| `DELETE` | `/api/v1/students/<id>/enroll/<sub_id>/<sem_id>` | Unenroll student from a subject. |
-
-#### Create Student Example (`POST /api/v1/students`):
-```json
-{
-  "roll_number": "STU-2026-001",
-  "first_name": "Alan",
-  "last_name": "Turing",
-  "email": "alan.turing@university.edu",
-  "phone": "+1-555-0199",
-  "date_of_birth": "2002-06-23",
-  "gender": "Male",
-  "current_semester_id": 1,
-  "status": "Active",
-  "address": "42 Computing Way, Cambridge"
-}
-```
+| Endpoint | Method | Query / Path Params | Description |
+|---|---|---|---|
+| `/api/v1/analytics/student/<id>` | `GET` | `student_id` | Student performance analytics (IDOR protected: Admin, Faculty teaching student, or Student self). |
+| `/api/v1/analytics/student/me` | `GET` | None | Resolves student ID from session and returns self analytics. |
+| `/api/v1/analytics/faculty` | `GET` | None | Analytical performance summary across all courses assigned to the logged-in faculty member. |
+| `/api/v1/analytics/overview` | `GET` | None | Administrative overview: total students, faculty, courses, department distributions, low-attendance alerts. |
 
 ---
 
-### Subject Endpoints (`/api/v1/subjects`)
+### Reports (`/api/v1/reports`)
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/subjects` | List subjects (filter by `department`, `semester_id`, `search`). |
-| `POST` | `/api/v1/subjects` | Create a new subject course. |
-| `GET` | `/api/v1/subjects/<id>` | Get subject details. |
-| `PUT` | `/api/v1/subjects/<id>` | Update subject details. |
-| `DELETE` | `/api/v1/subjects/<id>` | Delete subject course. |
+All report endpoints support `?format=json` (default), `?format=csv`, and `?format=pdf`.
 
-#### Create Subject Example (`POST /api/v1/subjects`):
-```json
-{
-  "subject_code": "CS201",
-  "name": "Data Structures & Algorithms",
-  "credits": 4.0,
-  "department": "Computer Science",
-  "semester_id": 1
-}
-```
+| Endpoint | Method | Parameters | Description |
+|---|---|---|---|
+| `/api/v1/reports/academic` | `GET` | `student_id`, `format` | Complete academic transcript with GPA, course credits, and graded evaluations. |
+| `/api/v1/reports/marks` | `GET` | `subject_id`, `semester_id`, `student_id`, `format` | Assessment marks registry with obtained/max points, percentages, and letter grades. |
+| `/api/v1/reports/attendance` | `GET` | `subject_id`, `student_id`, `date_from`, `date_to`, `format` | Detailed attendance logs with present, absent, late, and excused records. |
+| `/api/v1/reports/subject/<id>` | `GET` | `subject_id`, `format` | Course class performance report: class average %, pass rate %, enrolled count, score range. |
+| `/api/v1/reports/semester/<id>`| `GET` | `semester_id`, `format` | Semester term report: enrolled course listings, departments, and term average %. |
+| `/api/v1/reports/attendance/low`| `GET` | `threshold` (default 75) | Identifies all students falling below the minimum attendance threshold. |
 
 ---
 
-### Semester Endpoints (`/api/v1/semesters`)
+## 12. Analytics & Mathematical Engine
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/semesters` | List semesters (filter by `academic_year`, `is_active`). |
-| `POST` | `/api/v1/semesters` | Create a new semester. |
-| `GET` | `/api/v1/semesters/<id>` | Get semester details. |
-| `PUT` | `/api/v1/semesters/<id>` | Update semester details. |
-| `POST` | `/api/v1/semesters/<id>/activate` | Set semester as currently active. |
-| `DELETE` | `/api/v1/semesters/<id>` | Delete semester. |
+Analytics calculations are dynamically evaluated from live database records:
 
----
+1. **Subject Average Percentage**:
+   $$\text{Subject } \% = \frac{\sum \text{marks\_obtained}}{\sum \text{max\_marks}} \times 100$$
 
-### Marks & Grading Endpoints (`/api/v1/marks`)
+2. **Overall Average Percentage**:
+   $$\text{Overall } \% = \frac{\sum_{\text{all exams}} \text{marks\_obtained}}{\sum_{\text{all exams}} \text{max\_marks}} \times 100$$
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/marks` | Query marks by `student_id`, `subject_id`, `semester_id`, `exam_type`. |
-| `POST` | `/api/v1/marks` | Record a single exam mark. |
-| `POST` | `/api/v1/marks/batch` | Record multiple marks atomically in an ACID transaction. |
-| `GET` | `/api/v1/marks/<id>` | Get mark details with percentage and letter grade. |
-| `PUT` | `/api/v1/marks/<id>` | Update mark. |
-| `DELETE` | `/api/v1/marks/<id>` | Delete mark. |
+3. **Cumulative Grade Point Average (CGPA)**:
+   $$\text{CGPA} = \frac{\sum (\text{Grade Points}_i \times \text{Credits}_i)}{\sum \text{Credits}_i}$$
 
-#### Batch Record Marks Example (`POST /api/v1/marks/batch`):
-```json
-{
-  "records": [
-    {
-      "student_id": 1,
-      "subject_id": 1,
-      "semester_id": 1,
-      "exam_type": "Midterm",
-      "marks_obtained": 88.0,
-      "max_marks": 100.0,
-      "remarks": "Strong conceptual understanding"
-    },
-    {
-      "student_id": 1,
-      "subject_id": 1,
-      "semester_id": 1,
-      "exam_type": "Final",
-      "marks_obtained": 94.0,
-      "max_marks": 100.0,
-      "remarks": "Excellent project and written paper"
-    }
-  ]
-}
-```
-*Note: If any record in the batch violates a constraint or fails validation, all insertions are rolled back immediately.*
+4. **Attendance Rate**:
+   $$\text{Attendance } \% = \frac{\text{Present} + \text{Excused}}{\text{Total Sessions Logged}} \times 100$$
+
+5. **Subject Comparison**:
+   Sorts all enrolled subjects by percentage to identify the student's highest-performing course and the subject requiring focus.
 
 ---
 
-### Attendance Endpoints (`/api/v1/attendance`)
+## 13. Report Export Formats
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/attendance` | Query attendance by student, subject, date range, status. |
-| `POST` | `/api/v1/attendance` | Record individual attendance entry. |
-| `POST` | `/api/v1/attendance/batch` | Record attendance in bulk inside an atomic transaction. |
-| `GET` | `/api/v1/attendance/<id>` | Get attendance record. |
-| `PUT` | `/api/v1/attendance/<id>` | Update attendance entry. |
-| `DELETE` | `/api/v1/attendance/<id>` | Delete attendance entry. |
-| `GET` | `/api/v1/attendance/student/<id>/summary` | Aggregated attendance percentage & session stats. |
+- **Web JSON (`?format=json`)**: Standardized REST envelope (`success`, `message`, `data`, `meta`).
+- **RFC 4180 CSV (`?format=csv`)**: Streams a `.csv` download with `Content-Type: text/csv` and `Content-Disposition: attachment; filename="..."`.
+- **Vector PDF (`?format=pdf`)**: Programmatically built via `reportlab` utilizing:
+  - Header styling with university/institution title.
+  - Metadata definition lists (student roll, term, dates, user role).
+  - Auto-wrapped tabular data with alternating row fills and letter grade badges.
+  - Dynamic multi-page footer counters (`Page X of Y`).
 
 ---
 
-### Reports & Transcripts (`/api/v1/reports`)
+## License & Support
 
-| Method | Endpoint | Description |
-|---|---|---|
-| `GET` | `/api/v1/reports/students/<id>/transcript` | Full academic transcript with CGPA and semester GPAs. |
-| `GET` | `/api/v1/reports/attendance/low?threshold=75` | List all students below attendance threshold. |
-
-#### Transcript Response Structure:
-```json
-{
-  "success": true,
-  "data": {
-    "student": {
-      "id": 1,
-      "roll_number": "STU-2025-001",
-      "name": "Alice Johnson",
-      "email": "alice.johnson@example.com",
-      "status": "Active"
-    },
-    "academic_summary": {
-      "total_semesters_completed": 2,
-      "total_credits_earned": 15.0,
-      "cumulative_gpa": 3.84
-    },
-    "semesters": [ ... ],
-    "attendance": {
-      "total_sessions": 45,
-      "present": 42,
-      "absent": 3,
-      "attendance_percentage": 93.33,
-      "is_low_attendance": false
-    }
-  }
-}
-```
-
----
-
-## 9. Key Design Decisions
-
-1. **Pure Flask API without Heavy REST Extensions**:
-   - Built with native Flask Blueprints, `jsonify`, and custom exception handlers.
-   - Avoids heavyweight external dependencies (like Flask-RESTful or FastAPI) to keep the codebase lightweight, highly maintainable, and completely transparent.
-
-2. **Layered Architecture & Repository Pattern**:
-   - Business rules (GPA calculation, attendance percentages, date checks) reside strictly in the `services/` layer.
-   - Raw SQL and database driver interactions are isolated in `repositories/`, making the database layer swappable and testable without touching API routes.
-
-3. **Robust Input Validation & Sanitization**:
-   - Comprehensive regex format checking for emails, phones, and roll numbers.
-   - Date validation preventing future attendance logging and validating student minimum age.
-   - Academic constraints verifying that `marks_obtained <= max_marks` and `max_marks > 0`.
-
-4. **Atomic Transactions (`db.transaction`)**:
-   - Multi-record workflows such as batch marks entry and batch attendance logging run inside a context manager that guarantees full ACID compliance: on any error, a complete rollback is executed so the database is never left in an inconsistent state.
-
-5. **Decoupled Test Suite with In-Memory Adapter**:
-   - The test suite uses an in-memory connection adapter in `conftest.py` executing all queries and constraints with sub-second execution speed, allowing CI/CD and developers to run tests even if a local MySQL instance is not running.
+This project is licensed for educational and administrative management purposes. Built with Python 3.10+, Flask 3.1, MySQL 8.0, and ReportLab.
