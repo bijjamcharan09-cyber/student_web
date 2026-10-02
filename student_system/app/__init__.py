@@ -13,6 +13,9 @@ from app.api import (
     marks_bp,
     attendance_bp,
     reports_bp,
+    auth_bp,
+    faculty_bp,
+    analytics_bp,
 )
 
 
@@ -23,12 +26,15 @@ def create_app(config_name: str = "development") -> Flask:
     app.config.from_object(config_class)
 
     # Register Blueprints
+    app.register_blueprint(auth_bp)
     app.register_blueprint(students_bp)
     app.register_blueprint(subjects_bp)
     app.register_blueprint(semesters_bp)
     app.register_blueprint(marks_bp)
     app.register_blueprint(attendance_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(faculty_bp)
+    app.register_blueprint(analytics_bp)
 
     # Health & System Status Endpoints
     @app.route("/", methods=["GET"])
@@ -41,25 +47,41 @@ def create_app(config_name: str = "development") -> Flask:
         return api_response(
             data={
                 "name": "Student Management System API",
-                "version": "1.0.0",
+                "version": "2.0.0",
                 "status": "operational",
                 "dashboard": "/dashboard",
                 "endpoints": {
+                    "auth": "/api/v1/auth",
                     "students": "/api/v1/students",
+                    "faculty": "/api/v1/faculty",
                     "subjects": "/api/v1/subjects",
                     "semesters": "/api/v1/semesters",
                     "marks": "/api/v1/marks",
                     "attendance": "/api/v1/attendance",
                     "reports": "/api/v1/reports",
+                    "analytics": "/api/v1/analytics",
                 },
             },
-            message="Welcome to Student Management System API",
+            message="Welcome to Student Management System API V2",
         )
 
     @app.route("/dashboard", methods=["GET"])
+    @app.route("/dashboard.html", methods=["GET"])
     def dashboard():
         """Render visual HTML/CSS/JS dashboard."""
         return render_template("dashboard.html")
+
+    @app.route("/register", methods=["GET"])
+    @app.route("/register.html", methods=["GET"])
+    def register_page():
+        """Render visual registration page for all users."""
+        return render_template("register.html")
+
+    @app.route("/login", methods=["GET"])
+    @app.route("/login.html", methods=["GET"])
+    def login_page():
+        """Render visual login page."""
+        return render_template("login.html")
 
     @app.route("/health", methods=["GET"])
     def health_check():

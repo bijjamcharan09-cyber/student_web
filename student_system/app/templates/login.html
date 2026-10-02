@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sign In - Student Management System</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #f1f5f9;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 12px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px 16px; }
+
+    .brand-header { text-align: center; margin-bottom: 24px; }
+    .brand-logo { display: inline-flex; align-items: center; gap: 10px; font-size: 1.4rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+    .brand-sub { color: var(--text-muted); font-size: 0.95rem; margin-top: 6px; }
+
+    .card {
+      background: var(--card-bg); width: 100%; max-width: 440px; border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border); padding: 32px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px; }
+    .form-group input {
+      width: 100%; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.92rem;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: #fff;
+    }
+    .form-group input:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+
+    .btn-submit {
+      width: 100%; background: var(--primary); color: white; border: none; padding: 12px;
+      font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-top: 10px;
+    }
+    .btn-submit:hover { background: var(--primary-hover); }
+
+    .quick-roles {
+      margin-top: 20px; border-top: 1px solid var(--border); padding-top: 16px; text-align: center;
+    }
+    .quick-roles-title { font-size: 0.8rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; margin-bottom: 10px; }
+    .quick-btns { display: flex; gap: 6px; justify-content: center; flex-wrap: wrap; }
+    .quick-btn {
+      background: #f8fafc; border: 1px solid var(--border); padding: 6px 10px; font-size: 0.78rem;
+      border-radius: 6px; cursor: pointer; font-weight: 600; color: #475569; transition: all 0.2s;
+    }
+    .quick-btn:hover { background: #e2e8f0; color: #1e293b; }
+
+    .register-prompt { text-align: center; margin-top: 20px; font-size: 0.9rem; color: var(--text-muted); }
+    .register-prompt a { color: var(--primary); font-weight: 600; text-decoration: none; }
+    .register-prompt a:hover { text-decoration: underline; }
+
+    #alertBox {
+      display: none; padding: 12px 16px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 18px; font-weight: 500;
+    }
+    .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  </style>
+</head>
+<body>
+
+  <div class="brand-header">
+    <a href="dashboard.html" onclick="openDashboard(event)" class="brand-logo">
+      <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      <span>Student Management System</span>
+    </a>
+    <div class="brand-sub">Sign in to your portal</div>
+  </div>
+
+  <div class="card">
+    <div id="alertBox"></div>
+
+    <form onsubmit="handleLogin(event)">
+      <div class="form-group">
+        <label>Username or Email Address *</label>
+        <input type="text" id="usernameInput" name="username" placeholder="e.g. admin or student_25291a6601" required>
+      </div>
+
+      <div class="form-group">
+        <label>Password *</label>
+        <input type="password" id="passwordInput" name="password" placeholder="••••••••" required>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn-submit">Sign In</button>
+    </form>
+
+    <!-- Quick Role Login for Demo/Testing -->
+    <div class="quick-roles">
+      <div class="quick-roles-title">1-Click Demo Login</div>
+      <div class="quick-btns">
+        <button type="button" class="quick-btn" onclick="quickFill('admin', 'Admin@123')">🔑 Admin</button>
+        <button type="button" class="quick-btn" onclick="quickFill('faculty_turing', 'Faculty@123')">👨‍🏫 Faculty</button>
+        <button type="button" class="quick-btn" onclick="quickFill('student_25291a6601', 'Student@123')">🎓 Student</button>
+      </div>
+    </div>
+
+    <div class="register-prompt">
+      Don't have an account yet? <a href="register.html" onclick="openRegister(event)">Create an Account</a>
+    </div>
+  </div>
+
+  <script>
+    function quickFill(u, p) {
+      document.getElementById('usernameInput').value = u;
+      document.getElementById('passwordInput').value = p;
+      document.getElementById('submitBtn').click();
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('alertBox');
+      alertBox.style.display = 'none';
+
+      const username = document.getElementById('usernameInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Authenticating...';
+
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          showAlert(`Welcome back, ${json.data.user.username}! Redirecting...`, 'success');
+          if (json.data && json.data.token) {
+            localStorage.setItem('sms_auth_token', json.data.token);
+          }
+          setTimeout(() => {
+            if (window.location.protocol === 'file:' || window.location.pathname.endsWith('.html')) {
+              window.location.href = 'dashboard.html';
+            } else {
+              window.location.href = '/dashboard';
+            }
+          }, 800);
+        } else {
+          showAlert(json.error ? json.error.message : 'Invalid username or password.', 'danger');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Sign In';
+        }
+      } catch (err) {
+        showAlert('Could not reach the server.', 'danger');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
+      }
+    }
+
+    function openDashboard(e) {
+      if (e) e.preventDefault();
+      if (window.location.protocol === 'file:' || window.location.pathname.endsWith('.html')) {
+        window.location.href = 'dashboard.html';
+      } else {
+        window.location.href = '/dashboard';
+      }
+    }
+
+    function openRegister(e) {
+      if (e) e.preventDefault();
+      if (window.location.protocol === 'file:' || window.location.pathname.endsWith('.html')) {
+        window.location.href = 'register.html';
+      } else {
+        window.location.href = '/register';
+      }
+    }
+
+    function showAlert(msg, type) {
+      const alertBox = document.getElementById('alertBox');
+      alertBox.textContent = msg;
+      alertBox.className = type === 'danger' ? 'alert-danger' : 'alert-success';
+      alertBox.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

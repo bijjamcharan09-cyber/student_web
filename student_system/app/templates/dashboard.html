@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Student Management System - Dashboard</title>
+  <title>Student Management System - Dashboard & Analytics</title>
   <style>
     :root {
       --primary: #4f46e5;
@@ -23,23 +23,40 @@
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
     body { background-color: var(--bg); color: var(--text); padding-bottom: 60px; }
 
-    /* Header */
-    header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
-    .brand { display: flex; align-items: center; gap: 12px; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
-    .status-badge { background: #ecfdf5; color: #065f46; font-size: 0.8rem; font-weight: 600; padding: 4px 10px; border-radius: 9999px; border: 1px solid #a7f3d0; }
+    /* Header & Auth Bar */
+    header { background: #ffffff; border-bottom: 1px solid var(--border); padding: 14px 28px; position: sticky; top: 0; z-index: 50; }
+    .header-content { max-width: 1280px; margin: 0 auto; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+    .brand { display: flex; align-items: center; gap: 10px; font-size: 1.25rem; font-weight: 700; color: var(--primary); }
+    .auth-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .role-badge { font-size: 0.75rem; font-weight: 700; padding: 3px 8px; border-radius: 9999px; text-transform: uppercase; }
+    .role-admin { background: #fee2e2; color: #991b1b; }
+    .role-faculty { background: #e0e7ff; color: #3730a3; }
+    .role-student { background: #dcfce7; color: #166534; }
 
     /* Main Container */
-    .container { max-width: 1280px; margin: 28px auto; padding: 0 20px; }
+    .container { max-width: 1280px; margin: 24px auto; padding: 0 20px; }
+
+    /* Quick Role Switcher Banner */
+    .role-switcher-banner {
+      background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius); padding: 10px 16px;
+      margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;
+      font-size: 0.85rem; color: #1e40af;
+    }
+    .switcher-btns { display: flex; gap: 8px; flex-wrap: wrap; }
 
     /* Stats Grid */
-    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+    .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 16px; margin-bottom: 24px; }
     .stat-card { background: var(--card-bg); padding: 20px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); }
-    .stat-label { font-size: 0.85rem; color: var(--text-muted); font-weight: 500; text-transform: uppercase; letter-spacing: 0.05em; }
+    .stat-label { font-size: 0.82rem; color: var(--text-muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.05em; }
     .stat-val { font-size: 1.85rem; font-weight: 700; margin-top: 6px; color: var(--text); }
+    .stat-sub { font-size: 0.78rem; color: var(--text-muted); margin-top: 4px; }
 
     /* Navigation Tabs */
-    .tabs { display: flex; gap: 8px; border-bottom: 1px solid var(--border); margin-bottom: 24px; overflow-x: auto; }
-    .tab-btn { background: none; border: none; padding: 12px 18px; font-size: 0.95rem; font-weight: 600; color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; }
+    .tabs { display: flex; gap: 0; border-bottom: 1px solid var(--border); margin-bottom: 24px; width:100%; overflow-x: auto; }
+    .tab-btn {
+      flex: 1; min-width: max-content; background: none; border: none; padding: 12px 14px; font-size: 0.95rem; font-weight: 600;
+      color: var(--text-muted); cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; white-space: nowrap; text-align: center;
+    }
     .tab-btn:hover { color: var(--primary); }
     .tab-btn.active { color: var(--primary); border-bottom-color: var(--primary); }
 
@@ -50,13 +67,18 @@
       padding: 8px 12px; border: 1px solid var(--border); border-radius: 6px; font-size: 0.9rem; outline: none; transition: border-color 0.2s; background: #fff;
     }
     input:focus, select:focus, textarea:focus { border-color: var(--primary); }
-    .btn { background: var(--primary); color: white; border: none; padding: 8px 16px; font-size: 0.9rem; font-weight: 600; border-radius: 6px; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; gap: 6px; }
+    .btn {
+      background: var(--primary); color: white; border: none; padding: 8px 16px; font-size: 0.9rem; font-weight: 600;
+      border-radius: 6px; cursor: pointer; transition: background 0.2s; display: inline-flex; align-items: center; gap: 6px; text-decoration: none;
+    }
     .btn:hover { background: var(--primary-hover); }
     .btn-secondary { background: #e2e8f0; color: #334155; }
     .btn-secondary:hover { background: #cbd5e1; }
+    .btn-success { background: #10b981; color: white; }
+    .btn-success:hover { background: #059669; }
     .btn-danger { background: #fee2e2; color: var(--danger); }
     .btn-danger:hover { background: #fecaca; }
-    .btn-sm { padding: 4px 8px; font-size: 0.8rem; }
+    .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
 
     /* Table */
     .table-container { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow-x: auto; }
@@ -72,6 +94,21 @@
     .badge-suspended, .badge-absent, .badge-grade-f { background: #fee2e2; color: #991b1b; }
     .badge-inactive, .badge-late { background: #fef3c7; color: #92400e; }
     .badge-excused { background: #e0f2fe; color: #075985; }
+
+    /* Analytics Dashboard Components */
+    .analytics-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 20px; margin-top: 16px; }
+    .analytics-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); }
+    .analytics-title { font-size: 1rem; font-weight: 700; margin-bottom: 14px; display: flex; justify-content: space-between; align-items: center; }
+
+    /* Progress bar */
+    .bar-row { margin-bottom: 12px; }
+    .bar-label { display: flex; justify-content: space-between; font-size: 0.85rem; font-weight: 600; margin-bottom: 4px; }
+    .progress-track { height: 10px; background: #e2e8f0; border-radius: 9999px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 9999px; transition: width 0.5s ease-in-out; }
+
+    /* Report Export Buttons */
+    .export-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+    .report-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; box-shadow: var(--shadow); margin-bottom: 16px; }
 
     /* Modals / Dialogs */
     dialog {
@@ -93,69 +130,125 @@
       border-radius: 8px; box-shadow: var(--shadow); font-size: 0.9rem; font-weight: 500; display: none; z-index: 100;
     }
 
-    /* Tab content view */
     .tab-content { display: none; }
     .tab-content.active { display: block; }
   </style>
 </head>
 <body>
 
+  <!-- Header -->
   <header>
-    <div class="brand">
-      <span>🎓</span>
-      <span>Student Management System</span>
-    </div>
-    <div style="display: flex; gap: 12px; align-items: center;">
-      <span class="status-badge" id="activeSemesterBadge">Active Semester: Loading...</span>
-      <a href="/api/v1/students" target="_blank" style="font-size: 0.85rem; color: var(--primary); text-decoration: none; font-weight: 600;"></a>
+    <div class="header-content">
+      <div class="brand">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+          <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+        </svg>
+        <span>Student Management System(SMS)</span>
+      </div>
+
+      <!-- Auth profile & controls -->
+      <div class="auth-bar">
+        <span id="userStatusText" style="font-size: 0.88rem; color: #475569;">Checking session...</span>
+        <span id="userRoleBadge" class="role-badge role-admin">Role</span>
+        <button type="button" class="btn btn-sm" style="background:var(--primary); color:white;" onclick="openRegisterModal()">Register</button>
+        <button id="loginBtn" class="btn btn-secondary btn-sm" onclick="openLoginModal()">Log In</button>
+        <button id="logoutBtn" class="btn btn-danger btn-sm" style="display:none;" onclick="logout()">Log Out</button>
+      </div>
     </div>
   </header>
 
   <div class="container">
-    <!-- Top Metrics Overview -->
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Total Students</div>
-        <div class="stat-val" id="statStudents">-</div>
+    <!-- Quick Role Switcher Banner -->
+    <div class="role-switcher-banner">
+      <div>
+        <strong>Role-Based Access Control (RBAC) Switcher:</strong>
       </div>
-      <div class="stat-card">
-        <div class="stat-label">Total Subjects</div>
-        <div class="stat-val" id="statSubjects">-</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Semesters Configured</div>
-        <div class="stat-val" id="statSemesters">-</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">At-Risk Attendance (&lt;75%)</div>
-        <div class="stat-val" style="color: var(--danger);" id="statAttendanceRisk">-</div>
+      <div class="switcher-btns">
+        <button class="btn btn-sm btn-secondary" onclick="quickLogin('admin', 'Admin@123')">🔑 Switch to Admin</button>
+        <button class="btn btn-sm btn-secondary" onclick="quickLogin('faculty_turing', 'Faculty@123')">👨‍🏫 Switch to Faculty</button>
+        <button class="btn btn-sm btn-secondary" onclick="quickLogin('student_25291a6601', 'Student@123')">🎓 Switch to Student</button>
       </div>
     </div>
 
     <!-- Navigation Tabs -->
     <div class="tabs">
-      <button class="tab-btn active" onclick="switchTab('students')">👨‍🎓 Students</button>
-      <button class="tab-btn" onclick="switchTab('subjects')">📚 Subjects</button>
-      <button class="tab-btn" onclick="switchTab('semesters')">📅 Semesters</button>
-      <button class="tab-btn" onclick="switchTab('marks')">📝 Marks & Grades</button>
-      <button class="tab-btn" onclick="switchTab('attendance')">⏱️ Attendance</button>
-      <button class="tab-btn" onclick="switchTab('reports')">📊 Transcripts & Alerts</button>
+      <button class="tab-btn active" onclick="switchTab('analytics')">📊 Analytics Dashboard</button>
+      <button class="tab-btn" id="tabBtnStudents" onclick="switchTab('students')">🎓 Students</button>
+      <button class="tab-btn" id="tabBtnFaculty" onclick="switchTab('faculty')">👨‍🏫 Faculty</button>
+      <button class="tab-btn" id="tabBtnSubjects" onclick="switchTab('subjects')">📚 Subjects</button>
+      <button class="tab-btn" id="tabBtnSemesters" onclick="switchTab('semesters')">🗓️ Semesters</button>
+      <button class="tab-btn" id="tabBtnMarks" onclick="switchTab('marks')">📝 Marks</button>
+      <button class="tab-btn" id="tabBtnAttendance" onclick="switchTab('attendance')">📋 Attendance</button>
+      <button class="tab-btn" onclick="switchTab('reports')">📑 Reports & Exports</button>
     </div>
 
-    <!-- TAB 1: STUDENTS -->
-    <div id="tab-students" class="tab-content active">
+    <!-- TAB 1: ANALYTICS DASHBOARD -->
+    <div id="tab-analytics" class="tab-content active">
+      <!-- Top KPIs -->
+      <div class="stats-grid" id="analyticsKpiGrid">
+        <div class="stat-card">
+          <div class="stat-label">Overall Average</div>
+          <div class="stat-val" id="kpiAvgScore">--%</div>
+          <div class="stat-sub" id="kpiAvgSub">Calculated from exams</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Cumulative GPA</div>
+          <div class="stat-val" id="kpiGpa">--</div>
+          <div class="stat-sub">Based on credit weights</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Attendance Rate</div>
+          <div class="stat-val" id="kpiAttendance">--%</div>
+          <div class="stat-sub" id="kpiAttSub">Sessions attended</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Assessments</div>
+          <div class="stat-val" id="kpiAssessments">--</div>
+          <div class="stat-sub">Completed evaluations</div>
+        </div>
+      </div>
+
+      <!-- Role-specific analytics section -->
+      <div id="analyticsContentArea">
+        <div class="analytics-grid">
+          <!-- Subject Performance -->
+          <div class="analytics-card">
+            <div class="analytics-title">
+              <span>Subject Performance</span>
+              <span style="font-size:0.8rem; color:var(--text-muted);">Scores & Grades</span>
+            </div>
+            <div id="subjectBarsList">Loading subject analytics...</div>
+          </div>
+
+          <!-- Subject Comparison & Trends -->
+          <div class="analytics-card">
+            <div class="analytics-title">
+              <span>Subject Comparison & Strengths</span>
+            </div>
+            <div id="comparisonBox" style="margin-bottom: 20px;">Loading comparison data...</div>
+            <div class="analytics-title" style="margin-top: 14px;">
+              <span>Assessment Trends</span>
+            </div>
+            <div id="assessmentTrendsList">Loading trend records...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: STUDENTS -->
+    <div id="tab-students" class="tab-content">
       <div class="toolbar">
         <div class="filters">
-          <input type="text" id="studentSearch" placeholder="Search name, roll, email..." oninput="loadStudents()">
+          <input type="text" id="studentSearch" placeholder="Search by name, roll, email..." oninput="debounce(loadStudents, 300)()">
           <select id="studentStatusFilter" onchange="loadStudents()">
             <option value="">All Statuses</option>
             <option value="Active">Active</option>
             <option value="Inactive">Inactive</option>
             <option value="Suspended">Suspended</option>
-            <option value="Graduated">Graduated</option>
           </select>
         </div>
-        <button class="btn" onclick="document.getElementById('addStudentDialog').showModal()">+ Add Student</button>
+        <button class="btn" id="addStudentBtn" onclick="document.getElementById('addStudentDialog').showModal()">Add Student</button>
       </div>
 
       <div class="table-container">
@@ -163,9 +256,9 @@
           <thead>
             <tr>
               <th>Roll Number</th>
-              <th>Full Name</th>
+              <th>Name</th>
               <th>Email</th>
-              <th>Current Semester</th>
+              <th>Semester</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -177,24 +270,51 @@
       </div>
     </div>
 
-    <!-- TAB 2: SUBJECTS -->
-    <div id="tab-subjects" class="tab-content">
+    <!-- TAB 3: FACULTY (Admin Only) -->
+    <div id="tab-faculty" class="tab-content">
       <div class="toolbar">
         <div class="filters">
-          <input type="text" id="subjectSearch" placeholder="Search code or subject name..." oninput="loadSubjects()">
+          <input type="text" id="facultySearch" placeholder="Search faculty..." oninput="debounce(loadFaculty, 300)()">
         </div>
-        <button class="btn" onclick="document.getElementById('addSubjectDialog').showModal()">+ Add Subject</button>
+        <button class="btn" onclick="document.getElementById('addFacultyDialog').showModal()">Add Faculty</button>
       </div>
 
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Subject Code</th>
-              <th>Course Name</th>
-              <th>Credits</th>
+              <th>Faculty Code</th>
+              <th>Name</th>
+              <th>Email</th>
               <th>Department</th>
-              <th>Assigned Semester</th>
+              <th>Designation</th>
+              <th>Assigned Subjects</th>
+            </tr>
+          </thead>
+          <tbody id="facultyTableBody">
+            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading faculty...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- TAB 4: SUBJECTS -->
+    <div id="tab-subjects" class="tab-content">
+      <div class="toolbar">
+        <div class="filters">
+          <input type="text" id="subjectSearch" placeholder="Search subjects..." oninput="debounce(loadSubjects, 300)()">
+        </div>
+        <button class="btn" id="addSubjectBtn" onclick="document.getElementById('addSubjectDialog').showModal()">Add Subject</button>
+      </div>
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>Subject Code</th>
+              <th>Name</th>
+              <th>Department</th>
+              <th>Credits</th>
+              <th>Semester</th>
             </tr>
           </thead>
           <tbody id="subjectsTableBody">
@@ -204,49 +324,36 @@
       </div>
     </div>
 
-    <!-- TAB 3: SEMESTERS -->
+    <!-- TAB 5: SEMESTERS -->
     <div id="tab-semesters" class="tab-content">
       <div class="toolbar">
         <div></div>
-        <button class="btn" onclick="document.getElementById('addSemesterDialog').showModal()">+ Add Semester</button>
+        <button class="btn" id="addSemesterBtn" onclick="document.getElementById('addSemesterDialog').showModal()">Add Semester</button>
       </div>
-
       <div class="table-container">
         <table>
           <thead>
             <tr>
-              <th>Semester Name</th>
-              <th>Term Number</th>
+              <th>Name</th>
               <th>Academic Year</th>
-              <th>Start Date</th>
-              <th>End Date</th>
+              <th>Term Number</th>
+              <th>Dates</th>
               <th>Status</th>
-              <th>Action</th>
             </tr>
           </thead>
           <tbody id="semestersTableBody">
-            <tr><td colspan="7" style="text-align:center; padding: 24px;">Loading semesters...</td></tr>
+            <tr><td colspan="5" style="text-align:center; padding: 24px;">Loading semesters...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- TAB 4: MARKS & GRADES -->
+    <!-- TAB 6: MARKS -->
     <div id="tab-marks" class="tab-content">
       <div class="toolbar">
-        <div class="filters">
-          <select id="marksExamFilter" onchange="loadMarks()">
-            <option value="">All Assessment Types</option>
-            <option value="Quiz">Quiz</option>
-            <option value="Assignment">Assignment</option>
-            <option value="Midterm">Midterm</option>
-            <option value="Final">Final</option>
-            <option value="Practical">Practical</option>
-          </select>
-        </div>
-        <button class="btn" onclick="document.getElementById('addMarkDialog').showModal()">+ Record Mark</button>
+        <div></div>
+        <button class="btn" id="addMarkBtn" onclick="document.getElementById('addMarkDialog').showModal()">Add Marks</button>
       </div>
-
       <div class="table-container">
         <table>
           <thead>
@@ -254,35 +361,33 @@
               <th>Student</th>
               <th>Subject</th>
               <th>Semester</th>
-              <th>Exam</th>
-              <th>Score</th>
+              <th>Exam Type</th>
+              <th>Marks</th>
               <th>Percentage</th>
               <th>Grade</th>
-              <th>Remarks</th>
             </tr>
           </thead>
           <tbody id="marksTableBody">
-            <tr><td colspan="8" style="text-align:center; padding: 24px;">Loading marks...</td></tr>
+            <tr><td colspan="7" style="text-align:center; padding: 24px;">Loading marks...</td></tr>
           </tbody>
         </table>
       </div>
     </div>
 
-    <!-- TAB 5: ATTENDANCE -->
+    <!-- TAB 7: ATTENDANCE -->
     <div id="tab-attendance" class="tab-content">
       <div class="toolbar">
         <div class="filters">
           <select id="attendanceStatusFilter" onchange="loadAttendance()">
-            <option value="">All Attendance Statuses</option>
+            <option value="">All Attendance</option>
             <option value="Present">Present</option>
             <option value="Absent">Absent</option>
             <option value="Late">Late</option>
             <option value="Excused">Excused</option>
           </select>
         </div>
-        <button class="btn" onclick="document.getElementById('addAttendanceDialog').showModal()">+ Log Attendance</button>
+        <button class="btn" id="addAttendanceBtn" onclick="document.getElementById('addAttendanceDialog').showModal()">Log Attendance</button>
       </div>
-
       <div class="table-container">
         <table>
           <thead>
@@ -301,70 +406,114 @@
       </div>
     </div>
 
-    <!-- TAB 6: REPORTS & TRANSCRIPTS -->
+    <!-- TAB 8: REPORTS & EXPORTS -->
     <div id="tab-reports" class="tab-content">
-      <div class="toolbar">
-        <div class="filters">
-          <label style="font-weight: 600; font-size: 0.9rem;">Select Student:</label>
-          <select id="reportStudentSelect" onchange="loadTranscript(this.value)">
-            <option value="">-- Choose Student --</option>
-          </select>
+      <h3 style="margin-bottom: 16px;">Multi-Format Report Center</h3>
+      <p style="color: var(--text-muted); margin-bottom: 24px;">Generate structured reports across Web JSON, CSV export, and PDF formats with role-level enforcement.</p>
+
+      <!-- 1. Student Academic Report -->
+      <div class="report-card">
+        <h4>1. Student Academic Report / Transcript</h4>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">Cumulative GPA, course credits, and graded transcript breakdown.</p>
+        <div style="margin-top: 12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <select id="exportStudentSelect" style="max-width:280px;"></select>
+          <div class="export-group">
+            <button class="btn btn-secondary btn-sm" onclick="exportAcademic('json')">📄 View JSON</button>
+            <button class="btn btn-secondary btn-sm" onclick="exportAcademic('csv')">📊 Export CSV</button>
+            <button class="btn btn-success btn-sm" onclick="exportAcademic('pdf')">📑 Download PDF</button>
+          </div>
         </div>
       </div>
 
-      <!-- Transcript Result Display -->
-      <div id="transcriptDisplay" style="display: none; background: white; padding: 24px; border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); margin-bottom: 28px;">
-        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 20px; border-bottom: 1px solid var(--border); padding-bottom: 16px;">
-          <div>
-            <h2 id="trName" style="font-size: 1.4rem;">Student Name</h2>
-            <div id="trRoll" style="color: var(--text-muted); font-size: 0.9rem;">Roll No</div>
-          </div>
-          <div style="text-align: right;">
-            <div style="font-size: 0.8rem; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Cumulative GPA (CGPA)</div>
-            <div id="trCgpa" style="font-size: 2rem; font-weight: 800; color: var(--primary);">-</div>
-          </div>
+      <!-- 2. Marks Report -->
+      <div class="report-card">
+        <h4>2. Student Marks & Evaluation Report</h4>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">Complete assessment registry with scores, maximum points, percentages, and letter grades.</p>
+        <div class="export-group">
+          <button class="btn btn-secondary btn-sm" onclick="downloadReport('/api/v1/reports/marks?format=csv', 'marks_report.csv')">📊 Export CSV</button>
+          <button class="btn btn-success btn-sm" onclick="downloadReport('/api/v1/reports/marks?format=pdf', 'marks_report.pdf')">📑 Download PDF</button>
         </div>
-
-        <div style="margin-bottom: 16px; font-weight: 600; color: #475569;">Semester Breakdown:</div>
-        <div id="trSemestersList"></div>
       </div>
 
-      <!-- Low Attendance Risk Table -->
-      <h3 style="font-size: 1.1rem; margin-bottom: 12px; color: var(--danger);">⚠️ Students With Attendance Below 75%</h3>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Roll Number</th>
-              <th>Student Name</th>
-              <th>Email</th>
-              <th>Total Sessions</th>
-              <th>Attended Sessions</th>
-              <th>Attendance %</th>
-            </tr>
-          </thead>
-          <tbody id="lowAttendanceBody">
-            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading low attendance report...</td></tr>
-          </tbody>
-        </table>
+      <!-- 3. Attendance Report -->
+      <div class="report-card">
+        <h4>3. Student Attendance Report</h4>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">Detailed attendance logs with present/absent/late/excused entries.</p>
+        <div class="export-group">
+          <button class="btn btn-secondary btn-sm" onclick="downloadReport('/api/v1/reports/attendance?format=csv', 'attendance_report.csv')">📊 Export CSV</button>
+          <button class="btn btn-success btn-sm" onclick="downloadReport('/api/v1/reports/attendance?format=pdf', 'attendance_report.pdf')">📑 Download PDF</button>
+        </div>
+      </div>
+
+      <!-- 4. Subject Class Performance Report -->
+      <div class="report-card">
+        <h4>4. Subject / Course Class Performance Report</h4>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">Class averages, passing rates, and grade distributions.</p>
+        <div style="margin-top: 12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <select id="exportSubjectSelect" style="max-width:280px;"></select>
+          <div class="export-group">
+            <button class="btn btn-secondary btn-sm" onclick="exportSubject('csv')">📊 Export CSV</button>
+            <button class="btn btn-success btn-sm" onclick="exportSubject('pdf')">📑 Download PDF</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Semester Report -->
+      <div class="report-card">
+        <h4>5. Academic Semester Term Report</h4>
+        <p style="color:var(--text-muted); font-size:0.9rem; margin-top:4px;">Enrolled courses, department breakdowns, and overall term score averages.</p>
+        <div style="margin-top: 12px; display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <select id="exportSemesterSelect" style="max-width:280px;"></select>
+          <div class="export-group">
+            <button class="btn btn-secondary btn-sm" onclick="exportSemester('csv')">📊 Export CSV</button>
+            <button class="btn btn-success btn-sm" onclick="exportSemester('pdf')">📑 Download PDF</button>
+          </div>
+        </div>
       </div>
     </div>
   </div>
 
-  <!-- MODALS -->
-
-  <!-- 1. Add Student Modal -->
-  <dialog id="addStudentDialog">
+  <!-- Modals -->
+  <!-- Login Dialog -->
+  <dialog id="loginDialog">
     <div class="dialog-header">
-      <h3>Add New Student Profile</h3>
-      <button class="close-btn" onclick="document.getElementById('addStudentDialog').close()">✕</button>
+      <h3>Sign In to Account</h3>
+      <button class="close-btn" onclick="document.getElementById('loginDialog').close()">✕</button>
     </div>
-    <form id="addStudentForm" onsubmit="submitStudent(event)">
+    <form onsubmit="submitLogin(event)">
       <div class="form-group">
-        <label>Roll Number *</label>
-        <input type="text" name="roll_number" placeholder="e.g. STU-2026-001" required>
+        <label>Username or Email *</label>
+        <input type="text" name="username" required>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+      <div class="form-group">
+        <label>Password *</label>
+        <input type="password" name="password" required>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('loginDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Log In</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Register Dialog (In-page modal to prevent folder trust / navigation errors) -->
+  <dialog id="registerDialog" style="max-width: 540px;">
+    <div class="dialog-header">
+      <h3>Create an Account</h3>
+      <button class="close-btn" onclick="document.getElementById('registerDialog').close()">✕</button>
+    </div>
+
+    <!-- Role selection buttons -->
+    <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:6px; background:#f1f5f9; padding:4px; border-radius:8px; margin-bottom:16px;">
+      <button type="button" class="btn btn-sm" id="modalRoleStudent" style="background:#fff; color:var(--primary); font-weight:700;" onclick="switchModalRole('Student')">🎓 Student</button>
+      <button type="button" class="btn btn-sm btn-secondary" id="modalRoleFaculty" onclick="switchModalRole('Faculty')">👨‍🏫 Faculty</button>
+      <button type="button" class="btn btn-sm btn-secondary" id="modalRoleAdmin" onclick="switchModalRole('Admin')">🛡️ Admin</button>
+    </div>
+
+    <form onsubmit="submitModalRegister(event)">
+      <input type="hidden" id="modalSelectedRole" name="role" value="Student">
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         <div class="form-group">
           <label>First Name *</label>
           <input type="text" name="first_name" required>
@@ -374,61 +523,129 @@
           <input type="text" name="last_name" required>
         </div>
       </div>
-      <div class="form-group">
-        <label>Email *</label>
-        <input type="email" name="email" placeholder="student@example.com" required>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         <div class="form-group">
-          <label>Date of Birth *</label>
-          <input type="date" name="date_of_birth" required>
+          <label>Username *</label>
+          <input type="text" name="username" minlength="3" required>
         </div>
         <div class="form-group">
-          <label>Gender *</label>
-          <select name="gender" required>
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
+          <label>Email *</label>
+          <input type="email" name="email" required>
         </div>
       </div>
-      <div class="form-group">
-        <label>Current Semester</label>
-        <select name="current_semester_id" id="studentSemSelect">
-          <option value="">-- None --</option>
-        </select>
+
+      <div id="modalStudentFields">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group">
+            <label>Roll Number (optional)</label>
+            <input type="text" name="roll_number" placeholder="e.g. 25291A6601">
+          </div>
+          <div class="form-group">
+            <label>Gender</label>
+            <select name="gender">
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+            </select>
+          </div>
+        </div>
       </div>
+
+      <div id="modalFacultyFields" style="display:none;">
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="form-group">
+            <label>Faculty Code (optional)</label>
+            <input type="text" name="faculty_code" placeholder="e.g. FAC-101">
+          </div>
+          <div class="form-group">
+            <label>Department</label>
+            <input type="text" name="department" value="Computer Science">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Password *</label>
+          <input type="password" name="password" minlength="6" required>
+        </div>
+        <div class="form-group">
+          <label>Confirm Password *</label>
+          <input type="password" name="confirm_password" minlength="6" required>
+        </div>
+      </div>
+
       <div class="form-actions">
-        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addStudentDialog').close()">Cancel</button>
-        <button type="submit" class="btn">Create Student</button>
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('registerDialog').close()">Cancel</button>
+        <button type="submit" class="btn btn-success">Create & Log In</button>
       </div>
     </form>
   </dialog>
 
-  <!-- 2. Add Subject Modal -->
+  <!-- Add Student Dialog -->
+  <dialog id="addStudentDialog">
+    <div class="dialog-header">
+      <h3>New Student Registration</h3>
+      <button class="close-btn" onclick="document.getElementById('addStudentDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitStudent(event)">
+      <div class="form-group"><label>Roll Number *</label><input type="text" name="roll_number" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>First Name *</label><input type="text" name="first_name" required></div>
+        <div class="form-group"><label>Last Name *</label><input type="text" name="last_name" required></div>
+      </div>
+      <div class="form-group"><label>Email *</label><input type="email" name="email" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Date of Birth *</label><input type="date" name="date_of_birth" required></div>
+        <div class="form-group"><label>Gender *</label>
+          <select name="gender" required><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label>Current Semester</label><select name="current_semester_id" id="studentSemSelect"></select></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addStudentDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Save Student</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add Faculty Dialog -->
+  <dialog id="addFacultyDialog">
+    <div class="dialog-header">
+      <h3>Register Faculty Member</h3>
+      <button class="close-btn" onclick="document.getElementById('addFacultyDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitFaculty(event)">
+      <div class="form-group"><label>Faculty Code / Employee ID *</label><input type="text" name="faculty_code" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>First Name *</label><input type="text" name="first_name" required></div>
+        <div class="form-group"><label>Last Name *</label><input type="text" name="last_name" required></div>
+      </div>
+      <div class="form-group"><label>Email *</label><input type="email" name="email" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Department *</label><input type="text" name="department" value="Computer Science" required></div>
+        <div class="form-group"><label>Designation *</label><input type="text" name="designation" value="Lecturer" required></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addFacultyDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Save Faculty</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Add Subject Dialog -->
   <dialog id="addSubjectDialog">
     <div class="dialog-header">
-      <h3>Add Academic Subject</h3>
+      <h3>Create Subject Course</h3>
       <button class="close-btn" onclick="document.getElementById('addSubjectDialog').close()">✕</button>
     </div>
     <form onsubmit="submitSubject(event)">
-      <div class="form-group">
-        <label>Subject Code *</label>
-        <input type="text" name="subject_code" placeholder="e.g. CS101" required>
-      </div>
-      <div class="form-group">
-        <label>Course Title *</label>
-        <input type="text" name="name" placeholder="e.g. Algorithms" required>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label>Credits (0.5 - 12) *</label>
-          <input type="number" step="0.5" name="credits" value="3.0" min="0.5" max="12.0" required>
-        </div>
-        <div class="form-group">
-          <label>Department *</label>
-          <input type="text" name="department" placeholder="e.g. Computer Science" required>
-        </div>
+      <div class="form-group"><label>Subject Code *</label><input type="text" name="subject_code" required></div>
+      <div class="form-group"><label>Course Name *</label><input type="text" name="name" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Department *</label><input type="text" name="department" required></div>
+        <div class="form-group"><label>Credits *</label><input type="number" step="0.5" name="credits" value="3.0" min="0.5" required></div>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="document.getElementById('addSubjectDialog').close()">Cancel</button>
@@ -437,86 +654,48 @@
     </form>
   </dialog>
 
-  <!-- 3. Add Semester Modal -->
+  <!-- Add Semester Dialog -->
   <dialog id="addSemesterDialog">
     <div class="dialog-header">
-      <h3>Add Semester</h3>
+      <h3>Add Academic Semester</h3>
       <button class="close-btn" onclick="document.getElementById('addSemesterDialog').close()">✕</button>
     </div>
     <form onsubmit="submitSemester(event)">
-      <div class="form-group">
-        <label>Semester Name *</label>
-        <input type="text" name="name" placeholder="e.g. Fall 2026" required>
+      <div class="form-group"><label>Semester Name *</label><input type="text" name="name" placeholder="e.g. Fall 2026" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Semester Number *</label><input type="number" name="semester_number" value="1" min="1" max="12" required></div>
+        <div class="form-group"><label>Academic Year *</label><input type="text" name="academic_year" value="2025-2026" required></div>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label>Semester Number (1-12) *</label>
-          <input type="number" name="semester_number" value="1" min="1" max="12" required>
-        </div>
-        <div class="form-group">
-          <label>Academic Year *</label>
-          <input type="text" name="academic_year" placeholder="2026-2027" required>
-        </div>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label>Start Date *</label>
-          <input type="date" name="start_date" required>
-        </div>
-        <div class="form-group">
-          <label>End Date *</label>
-          <input type="date" name="end_date" required>
-        </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Start Date *</label><input type="date" name="start_date" required></div>
+        <div class="form-group"><label>End Date *</label><input type="date" name="end_date" required></div>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="document.getElementById('addSemesterDialog').close()">Cancel</button>
-        <button type="submit" class="btn">Add Semester</button>
+        <button type="submit" class="btn">Create Semester</button>
       </div>
     </form>
   </dialog>
 
-  <!-- 4. Add Mark Modal -->
+  <!-- Add Mark Dialog -->
   <dialog id="addMarkDialog">
     <div class="dialog-header">
-      <h3>Record Exam Mark</h3>
+      <h3>Record Assessment Mark</h3>
       <button class="close-btn" onclick="document.getElementById('addMarkDialog').close()">✕</button>
     </div>
     <form onsubmit="submitMark(event)">
-      <div class="form-group">
-        <label>Student *</label>
-        <select name="student_id" id="markStudentSelect" required></select>
-      </div>
-      <div class="form-group">
-        <label>Subject *</label>
-        <select name="subject_id" id="markSubjectSelect" required></select>
-      </div>
-      <div class="form-group">
-        <label>Semester *</label>
-        <select name="semester_id" id="markSemesterSelect" required></select>
-      </div>
-      <div class="form-group">
-        <label>Exam Type *</label>
+      <div class="form-group"><label>Student *</label><select name="student_id" id="markStudentSelect" required></select></div>
+      <div class="form-group"><label>Subject *</label><select name="subject_id" id="markSubjectSelect" required></select></div>
+      <div class="form-group"><label>Semester *</label><select name="semester_id" id="markSemesterSelect" required></select></div>
+      <div class="form-group"><label>Exam Type *</label>
         <select name="exam_type" required>
-          <option value="Quiz">Quiz</option>
-          <option value="Assignment">Assignment</option>
-          <option value="Midterm">Midterm</option>
-          <option value="Final">Final</option>
-          <option value="Practical">Practical</option>
+          <option value="Quiz">Quiz</option><option value="Assignment">Assignment</option>
+          <option value="Midterm">Midterm</option><option value="Final">Final</option>
         </select>
       </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label>Marks Obtained *</label>
-          <input type="number" step="0.5" name="marks_obtained" min="0" required>
-        </div>
-        <div class="form-group">
-          <label>Max Marks *</label>
-          <input type="number" step="0.5" name="max_marks" value="100.0" min="1" required>
-        </div>
-      </div>
-      <div class="form-group">
-        <label>Remarks</label>
-        <input type="text" name="remarks" placeholder="Optional comments">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Marks Obtained *</label><input type="number" step="0.5" name="marks_obtained" min="0" required></div>
+        <div class="form-group"><label>Max Marks *</label><input type="number" step="0.5" name="max_marks" value="100.0" min="1" required></div>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="document.getElementById('addMarkDialog').close()">Cancel</button>
@@ -525,39 +704,23 @@
     </form>
   </dialog>
 
-  <!-- 5. Add Attendance Modal -->
+  <!-- Add Attendance Dialog -->
   <dialog id="addAttendanceDialog">
     <div class="dialog-header">
-      <h3>Log Attendance Entry</h3>
+      <h3>Log Attendance Record</h3>
       <button class="close-btn" onclick="document.getElementById('addAttendanceDialog').close()">✕</button>
     </div>
     <form onsubmit="submitAttendance(event)">
-      <div class="form-group">
-        <label>Student *</label>
-        <select name="student_id" id="attStudentSelect" required></select>
-      </div>
-      <div class="form-group">
-        <label>Subject *</label>
-        <select name="subject_id" id="attSubjectSelect" required></select>
-      </div>
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <div class="form-group">
-          <label>Date *</label>
-          <input type="date" name="date" id="attDateInput" required>
-        </div>
-        <div class="form-group">
-          <label>Status *</label>
+      <div class="form-group"><label>Student *</label><select name="student_id" id="attStudentSelect" required></select></div>
+      <div class="form-group"><label>Subject *</label><select name="subject_id" id="attSubjectSelect" required></select></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Date *</label><input type="date" name="date" id="attDateInput" required></div>
+        <div class="form-group"><label>Status *</label>
           <select name="status" required>
-            <option value="Present">Present</option>
-            <option value="Absent">Absent</option>
-            <option value="Late">Late</option>
-            <option value="Excused">Excused</option>
+            <option value="Present">Present</option><option value="Absent">Absent</option>
+            <option value="Late">Late</option><option value="Excused">Excused</option>
           </select>
         </div>
-      </div>
-      <div class="form-group">
-        <label>Remarks</label>
-        <input type="text" name="remarks" placeholder="Optional remarks">
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="document.getElementById('addAttendanceDialog').close()">Cancel</button>
@@ -569,22 +732,116 @@
   <div id="toast">Message</div>
 
   <script>
-    // Tab switching
+    let currentUser = null;
+    let authToken = localStorage.getItem('sms_auth_token') || '';
+
+    function authFetch(url, options = {}) {
+      options.headers = options.headers || {};
+      if (authToken) {
+        options.headers['Authorization'] = `Bearer ${authToken}`;
+      }
+      return fetch(url, options);
+    }
+
+    // Initialize session check
+    async function checkAuthSession() {
+      try {
+        const res = await authFetch('/api/v1/auth/me');
+        const json = await res.json();
+        if (json.success) {
+          currentUser = json.data;
+          updateAuthUI(currentUser);
+        } else {
+          // If unauthenticated, default quick login as admin for demonstration
+          quickLogin('admin', 'Admin@123');
+        }
+      } catch (e) {
+        console.error('Session check error:', e);
+      }
+    }
+
+    function updateAuthUI(user) {
+      document.getElementById('userStatusText').textContent = `Logged in: ${user.username}`;
+      const badge = document.getElementById('userRoleBadge');
+      badge.textContent = user.role;
+      badge.className = `role-badge role-${user.role.toLowerCase()}`;
+      document.getElementById('loginBtn').style.display = 'none';
+      document.getElementById('logoutBtn').style.display = 'inline-flex';
+
+      // RBAC UI control
+      const role = user.role;
+      document.getElementById('tabBtnFaculty').style.display = role === 'Admin' ? 'inline-block' : 'none';
+      document.getElementById('addStudentBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
+      document.getElementById('addSubjectBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
+      document.getElementById('addSemesterBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
+
+      // Refresh Analytics tab
+      loadAnalytics();
+      populateDropdowns();
+    }
+
+    async function quickLogin(username, password) {
+      try {
+        const res = await fetch('/api/v1/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ username, password })
+        });
+        const json = await res.json();
+        if (json.success) {
+          currentUser = json.data.user;
+          authToken = json.data.token;
+          localStorage.setItem('sms_auth_token', authToken);
+          showToast(`Signed in as ${currentUser.username} (${currentUser.role})`);
+          updateAuthUI(currentUser);
+        } else {
+          showToast(json.error ? json.error.message : 'Login failed', true);
+        }
+      } catch (err) {
+        showToast('Login connection failed', true);
+      }
+    }
+
+    async function submitLogin(e) {
+      e.preventDefault();
+      const form = e.target;
+      await quickLogin(form.username.value.trim(), form.password.value.trim());
+      document.getElementById('loginDialog').close();
+    }
+
+    function openLoginModal() {
+      document.getElementById('loginDialog').showModal();
+    }
+
+    async function logout() {
+      await authFetch('/api/v1/auth/logout', { method: 'POST' });
+      localStorage.removeItem('sms_auth_token');
+      authToken = '';
+      currentUser = null;
+      document.getElementById('userStatusText').textContent = 'Not signed in';
+      document.getElementById('userRoleBadge').textContent = 'Guest';
+      document.getElementById('userRoleBadge').className = 'role-badge';
+      document.getElementById('loginBtn').style.display = 'inline-flex';
+      document.getElementById('logoutBtn').style.display = 'none';
+      showToast('Logged out successfully');
+    }
+
+    // Tabs
     function switchTab(tabId) {
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       event.currentTarget.classList.add('active');
       document.getElementById('tab-' + tabId).classList.add('active');
 
+      if (tabId === 'analytics') loadAnalytics();
       if (tabId === 'students') loadStudents();
+      if (tabId === 'faculty') loadFaculty();
       if (tabId === 'subjects') loadSubjects();
       if (tabId === 'semesters') loadSemesters();
       if (tabId === 'marks') loadMarks();
       if (tabId === 'attendance') loadAttendance();
-      if (tabId === 'reports') loadReportsData();
     }
 
-    // Show Toast
     function showToast(msg, isError = false) {
       const toast = document.getElementById('toast');
       toast.textContent = msg;
@@ -593,70 +850,174 @@
       setTimeout(() => { toast.style.display = 'none'; }, 3500);
     }
 
-    // Load top stats
-    async function loadStats() {
-      try {
-        const [stuRes, subRes, semRes, riskRes] = await Promise.all([
-          fetch('/api/v1/students?per_page=1'),
-          fetch('/api/v1/subjects?per_page=1'),
-          fetch('/api/v1/semesters'),
-          fetch('/api/v1/reports/attendance/low')
-        ]);
-        const stuData = await stuRes.json();
-        const subData = await subRes.json();
-        const semData = await semRes.json();
-        const riskData = await riskRes.json();
+    // Analytics Dashboard Loader
+    async function loadAnalytics() {
+      if (!currentUser) return;
+      const role = currentUser.role;
 
-        if (stuData.success) document.getElementById('statStudents').textContent = stuData.meta ? stuData.meta.total : 0;
-        if (subData.success) document.getElementById('statSubjects').textContent = subData.meta ? subData.meta.total : 0;
-        if (semData.success) {
-          document.getElementById('statSemesters').textContent = semData.data.length;
-          const active = semData.data.find(s => s.is_active);
-          document.getElementById('activeSemesterBadge').textContent = active ? `Active: ${active.name}` : 'No Active Semester';
-        }
-        if (riskData.success) document.getElementById('statAttendanceRisk').textContent = riskData.data.length;
-      } catch (err) {
-        console.error('Stats error:', err);
+      if (role === 'Student') {
+        try {
+          const res = await authFetch('/api/v1/analytics/student/me');
+          const json = await res.json();
+          if (json.success) renderStudentAnalytics(json.data);
+        } catch (e) { console.error(e); }
+      } else if (role === 'Faculty') {
+        try {
+          const res = await authFetch('/api/v1/analytics/faculty');
+          const json = await res.json();
+          if (json.success) renderFacultyAnalytics(json.data);
+        } catch (e) { console.error(e); }
+      } else {
+        // Admin overview
+        try {
+          const res = await authFetch('/api/v1/analytics/overview');
+          const json = await res.json();
+          if (json.success) renderAdminAnalytics(json.data);
+        } catch (e) { console.error(e); }
       }
     }
 
-    // Populate dropdown options
+    function renderStudentAnalytics(data) {
+      const m = data.metrics;
+      document.getElementById('kpiAvgScore').textContent = `${m.overall_average_percentage}%`;
+      document.getElementById('kpiGpa').textContent = m.cumulative_gpa.toFixed(2);
+      document.getElementById('kpiAttendance').textContent = `${m.attendance_percentage}%`;
+      document.getElementById('kpiAssessments').textContent = m.total_assessments_taken;
+
+      // Subject bars
+      const barsDiv = document.getElementById('subjectBarsList');
+      if (!data.subject_wise_marks.length) {
+        barsDiv.innerHTML = '<div style="color:var(--text-muted);">No marks recorded yet.</div>';
+      } else {
+        barsDiv.innerHTML = data.subject_wise_marks.map(s => `
+          <div class="bar-row">
+            <div class="bar-label">
+              <span>${s.subject_code} - ${s.subject_name}</span>
+              <span><strong>${s.percentage}%</strong> (${s.overall_grade})</span>
+            </div>
+            <div class="progress-track">
+              <div class="progress-fill" style="width: ${Math.min(s.percentage, 100)}%; background: ${s.percentage >= 70 ? 'var(--success)' : (s.percentage >= 50 ? 'var(--warning)' : 'var(--danger)')}"></div>
+            </div>
+          </div>
+        `).join('');
+      }
+
+      // Comparison & Trends
+      const compDiv = document.getElementById('comparisonBox');
+      const hi = data.subject_comparison.highest;
+      const lo = data.subject_comparison.lowest;
+      compDiv.innerHTML = `
+        <div style="display:flex; justify-content:space-between; background:#f8fafc; padding:12px; border-radius:8px; border:1px solid var(--border);">
+          <div>🏆 <strong>Top Subject:</strong> ${hi.subject || 'N/A'} (${hi.percentage}%)</div>
+          <div>⚠️ <strong>Needs Focus:</strong> ${lo.subject || 'N/A'} (${lo.percentage}%)</div>
+        </div>
+      `;
+
+      const trendDiv = document.getElementById('assessmentTrendsList');
+      trendDiv.innerHTML = data.performance_trends.slice(0, 5).map(t => `
+        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
+          <span>${t.label}</span>
+          <strong>${t.percentage}% (${t.grade})</strong>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted)">No assessment history yet.</div>';
+    }
+
+    function renderFacultyAnalytics(data) {
+      document.getElementById('kpiAvgScore').textContent = `${data.assigned_subjects.length} Courses`;
+      document.getElementById('kpiAvgSub').textContent = 'Assigned teaching load';
+      document.getElementById('kpiGpa').textContent = data.faculty.department;
+      document.getElementById('kpiAttendance').textContent = `${data.total_enrolled_students} Students`;
+      document.getElementById('kpiAttSub').textContent = 'Under instruction';
+      document.getElementById('kpiAssessments').textContent = data.faculty.designation;
+
+      const barsDiv = document.getElementById('subjectBarsList');
+      barsDiv.innerHTML = data.assigned_subjects.map(s => `
+        <div class="bar-row">
+          <div class="bar-label">
+            <span>${s.subject_code} - ${s.name} (${s.enrolled_count} students)</span>
+            <span>Avg: <strong>${s.class_average}%</strong> | Pass: ${s.pass_rate}%</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: ${Math.min(s.class_average, 100)}%; background: var(--primary);"></div>
+          </div>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted)">No subjects assigned.</div>';
+
+      document.getElementById('comparisonBox').innerHTML = '<em>Faculty Course Scope Enforced strictly on MySQL queries.</em>';
+      document.getElementById('assessmentTrendsList').innerHTML = '<em>Analytics calculated from actual database records.</em>';
+    }
+
+    function renderAdminAnalytics(data) {
+      const o = data.overview;
+      document.getElementById('kpiAvgScore').textContent = o.total_students;
+      document.getElementById('kpiAvgSub').textContent = 'Registered students';
+      document.getElementById('kpiGpa').textContent = o.total_faculty;
+      document.getElementById('kpiAttendance').textContent = `${o.total_subjects} Courses`;
+      document.getElementById('kpiAttSub').textContent = `${o.total_semesters} Semesters`;
+      document.getElementById('kpiAssessments').textContent = o.total_evaluations;
+
+      const barsDiv = document.getElementById('subjectBarsList');
+      barsDiv.innerHTML = data.departments.map(d => `
+        <div class="bar-row">
+          <div class="bar-label">
+            <span>${d.department}</span>
+            <span><strong>${d.student_count}</strong> students</span>
+          </div>
+          <div class="progress-track">
+            <div class="progress-fill" style="width: ${Math.min(d.student_count * 20, 100)}%; background: var(--primary);"></div>
+          </div>
+        </div>
+      `).join('');
+
+      document.getElementById('comparisonBox').innerHTML = `
+        <div style="background:#fee2e2; color:#991b1b; padding:10px; border-radius:6px; font-size:0.85rem;">
+          ⚠️ <strong>${data.low_attendance_students.length} Students</strong> currently below 75% attendance alert threshold.
+        </div>
+      `;
+      document.getElementById('assessmentTrendsList').innerHTML = data.top_students.slice(0, 5).map(s => `
+        <div style="display:flex; justify-content:space-between; padding:6px 0; border-bottom:1px solid var(--border); font-size:0.85rem;">
+          <span>${s.roll_number} - ${s.name}</span>
+          <strong>GPA: ${s.cumulative_gpa.toFixed(2)}</strong>
+        </div>
+      `).join('') || '<div style="color:var(--text-muted)">No student records available.</div>';
+    }
+
+    // Populate dropdown lists for forms and reports
     async function populateDropdowns() {
       try {
         const [stuRes, subRes, semRes] = await Promise.all([
-          fetch('/api/v1/students?per_page=100'),
-          fetch('/api/v1/subjects?per_page=100'),
-          fetch('/api/v1/semesters')
+          authFetch('/api/v1/students?per_page=100'),
+          authFetch('/api/v1/subjects?per_page=100'),
+          authFetch('/api/v1/semesters')
         ]);
         const stu = (await stuRes.json()).data || [];
         const sub = (await subRes.json()).data || [];
         const sem = (await semRes.json()).data || [];
 
-        // Students dropdowns
         const stuOpts = stu.map(s => `<option value="${s.id}">${s.roll_number} - ${s.first_name} ${s.last_name}</option>`).join('');
         document.getElementById('markStudentSelect').innerHTML = stuOpts;
         document.getElementById('attStudentSelect').innerHTML = stuOpts;
-        document.getElementById('reportStudentSelect').innerHTML = '<option value="">-- Choose Student --</option>' + stuOpts;
+        document.getElementById('exportStudentSelect').innerHTML = stuOpts;
 
-        // Subjects dropdowns
         const subOpts = sub.map(s => `<option value="${s.id}">${s.subject_code} - ${s.name}</option>`).join('');
         document.getElementById('markSubjectSelect').innerHTML = subOpts;
         document.getElementById('attSubjectSelect').innerHTML = subOpts;
+        document.getElementById('exportSubjectSelect').innerHTML = subOpts;
 
-        // Semesters dropdowns
         const semOpts = sem.map(s => `<option value="${s.id}">${s.name} (${s.academic_year})</option>`).join('');
         document.getElementById('markSemesterSelect').innerHTML = semOpts;
         document.getElementById('studentSemSelect').innerHTML = '<option value="">-- None --</option>' + semOpts;
+        document.getElementById('exportSemesterSelect').innerHTML = semOpts;
       } catch (e) {
-        console.error(e);
+        console.error('Dropdown populate error:', e);
       }
     }
 
-    // 1. STUDENTS
+    // STUDENTS CRUD
     async function loadStudents() {
       const search = document.getElementById('studentSearch').value;
       const status = document.getElementById('studentStatusFilter').value;
-      const res = await fetch(`/api/v1/students?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&per_page=50`);
+      const res = await authFetch(`/api/v1/students?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&per_page=50`);
       const json = await res.json();
       const tbody = document.getElementById('studentsTableBody');
 
@@ -673,7 +1034,7 @@
           <td>${s.current_semester_name || '<span style="color:var(--text-muted)">None</span>'}</td>
           <td><span class="badge badge-${s.status.toLowerCase()}">${s.status}</span></td>
           <td>
-            <button class="btn btn-secondary btn-sm" onclick="viewTranscriptFor(${s.id})">Transcript</button>
+            <a class="btn btn-secondary btn-sm" href="/api/v1/reports/student/${s.id}?format=pdf" target="_blank">PDF</a>
             <button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">Delete</button>
           </td>
         </tr>
@@ -692,8 +1053,7 @@
         gender: form.gender.value,
         current_semester_id: form.current_semester_id.value ? parseInt(form.current_semester_id.value) : null
       };
-
-      const res = await fetch('/api/v1/students', {
+      const res = await authFetch('/api/v1/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -704,53 +1064,88 @@
         document.getElementById('addStudentDialog').close();
         form.reset();
         loadStudents();
-        loadStats();
-        populateDropdowns();
       } else {
-        showToast(json.error ? json.error.message : 'Error creating student', true);
+        showToast(json.error ? json.error.message : 'Error adding student', true);
       }
     }
 
     async function deleteStudent(id) {
       if (!confirm('Are you sure you want to delete this student profile?')) return;
-      const res = await fetch(`/api/v1/students/${id}`, { method: 'DELETE' });
+      const res = await authFetch(`/api/v1/students/${id}`, { method: 'DELETE' });
       const json = await res.json();
       if (json.success) {
         showToast('Student deleted successfully');
         loadStudents();
-        loadStats();
       } else {
-        showToast('Failed to delete student', true);
+        showToast(json.error ? json.error.message : 'Failed to delete student', true);
       }
     }
 
-    function viewTranscriptFor(studentId) {
-      switchTab('reports');
-      document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-      document.querySelectorAll('.tab-btn')[5].classList.add('active');
-      document.getElementById('reportStudentSelect').value = studentId;
-      loadTranscript(studentId);
+    // FACULTY CRUD
+    async function loadFaculty() {
+      const res = await authFetch('/api/v1/faculty?per_page=50');
+      const json = await res.json();
+      const tbody = document.getElementById('facultyTableBody');
+      if (!json.success || !json.data.length) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No faculty registered.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = json.data.map(f => `
+        <tr>
+          <td><strong>${f.faculty_code}</strong></td>
+          <td>${f.first_name} ${f.last_name}</td>
+          <td>${f.email}</td>
+          <td>${f.department}</td>
+          <td>${f.designation}</td>
+          <td><span class="badge badge-active">${(f.assigned_subjects || []).length} Courses</span></td>
+        </tr>
+      `).join('');
     }
 
-    // 2. SUBJECTS
+    async function submitFaculty(e) {
+      e.preventDefault();
+      const form = e.target;
+      const data = {
+        faculty_code: form.faculty_code.value.trim(),
+        first_name: form.first_name.value.trim(),
+        last_name: form.last_name.value.trim(),
+        email: form.email.value.trim(),
+        department: form.department.value.trim(),
+        designation: form.designation.value.trim()
+      };
+      const res = await authFetch('/api/v1/faculty', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      const json = await res.json();
+      if (json.success) {
+        showToast('Faculty member registered successfully!');
+        document.getElementById('addFacultyDialog').close();
+        form.reset();
+        loadFaculty();
+      } else {
+        showToast(json.error ? json.error.message : 'Error registering faculty', true);
+      }
+    }
+
+    // SUBJECTS CRUD
     async function loadSubjects() {
       const search = document.getElementById('subjectSearch').value;
-      const res = await fetch(`/api/v1/subjects?search=${encodeURIComponent(search)}&per_page=50`);
+      const res = await authFetch(`/api/v1/subjects?search=${encodeURIComponent(search)}&per_page=50`);
       const json = await res.json();
       const tbody = document.getElementById('subjectsTableBody');
-
       if (!json.success || !json.data.length) {
         tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px;">No subjects found.</td></tr>';
         return;
       }
-
       tbody.innerHTML = json.data.map(sub => `
         <tr>
           <td><strong>${sub.subject_code}</strong></td>
           <td>${sub.name}</td>
-          <td>${sub.credits} Credits</td>
           <td>${sub.department}</td>
-          <td>${sub.semester_name || 'All'}</td>
+          <td>${sub.credits}</td>
+          <td>${sub.semester_name || '-'}</td>
         </tr>
       `).join('');
     }
@@ -759,13 +1154,12 @@
       e.preventDefault();
       const form = e.target;
       const data = {
-        subject_code: form.subject_code.value.trim().toUpperCase(),
+        subject_code: form.subject_code.value.trim(),
         name: form.name.value.trim(),
-        credits: parseFloat(form.credits.value),
-        department: form.department.value.trim()
+        department: form.department.value.trim(),
+        credits: parseFloat(form.credits.value)
       };
-
-      const res = await fetch('/api/v1/subjects', {
+      const res = await authFetch('/api/v1/subjects', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -776,37 +1170,27 @@
         document.getElementById('addSubjectDialog').close();
         form.reset();
         loadSubjects();
-        loadStats();
-        populateDropdowns();
       } else {
         showToast(json.error ? json.error.message : 'Error adding subject', true);
       }
     }
 
-    // 3. SEMESTERS
+    // SEMESTERS CRUD
     async function loadSemesters() {
-      const res = await fetch('/api/v1/semesters');
+      const res = await authFetch('/api/v1/semesters');
       const json = await res.json();
       const tbody = document.getElementById('semestersTableBody');
-
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px;">No semesters found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px;">No semesters configured.</td></tr>';
         return;
       }
-
       tbody.innerHTML = json.data.map(sem => `
         <tr>
           <td><strong>${sem.name}</strong></td>
-          <td>Semester ${sem.semester_number}</td>
           <td>${sem.academic_year}</td>
-          <td>${sem.start_date}</td>
-          <td>${sem.end_date}</td>
-          <td>
-            ${sem.is_active ? '<span class="badge badge-active">Active</span>' : '<span class="badge badge-inactive">Inactive</span>'}
-          </td>
-          <td>
-            ${!sem.is_active ? `<button class="btn btn-secondary btn-sm" onclick="activateSemester(${sem.id})">Set Active</button>` : ''}
-          </td>
+          <td>Term ${sem.semester_number}</td>
+          <td>${sem.start_date} to ${sem.end_date}</td>
+          <td><span class="badge ${sem.is_active ? 'badge-active' : 'badge-inactive'}">${sem.is_active ? 'Active' : 'Archived'}</span></td>
         </tr>
       `).join('');
     }
@@ -821,47 +1205,31 @@
         start_date: form.start_date.value,
         end_date: form.end_date.value
       };
-
-      const res = await fetch('/api/v1/semesters', {
+      const res = await authFetch('/api/v1/semesters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
       const json = await res.json();
       if (json.success) {
-        showToast('Semester added successfully!');
+        showToast('Semester created!');
         document.getElementById('addSemesterDialog').close();
         form.reset();
         loadSemesters();
-        loadStats();
-        populateDropdowns();
       } else {
         showToast(json.error ? json.error.message : 'Error adding semester', true);
       }
     }
 
-    async function activateSemester(id) {
-      const res = await fetch(`/api/v1/semesters/${id}/activate`, { method: 'POST' });
-      const json = await res.json();
-      if (json.success) {
-        showToast('Semester activated!');
-        loadSemesters();
-        loadStats();
-      }
-    }
-
-    // 4. MARKS
+    // MARKS CRUD
     async function loadMarks() {
-      const examType = document.getElementById('marksExamFilter').value;
-      const res = await fetch(`/api/v1/marks?exam_type=${encodeURIComponent(examType)}&per_page=50`);
+      const res = await authFetch('/api/v1/marks?per_page=50');
       const json = await res.json();
       const tbody = document.getElementById('marksTableBody');
-
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px;">No marks recorded.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px;">No marks recorded.</td></tr>';
         return;
       }
-
       tbody.innerHTML = json.data.map(m => `
         <tr>
           <td><strong>${m.first_name} ${m.last_name}</strong> (${m.roll_number})</td>
@@ -869,9 +1237,8 @@
           <td>${m.semester_name}</td>
           <td>${m.exam_type}</td>
           <td>${m.marks_obtained} / ${m.max_marks}</td>
-          <td>${m.percentage}%</td>
+          <td><strong>${m.percentage}%</strong></td>
           <td><span class="badge badge-grade-a">${m.grade}</span></td>
-          <td>${m.remarks || '-'}</td>
         </tr>
       `).join('');
     }
@@ -885,11 +1252,9 @@
         semester_id: parseInt(form.semester_id.value),
         exam_type: form.exam_type.value,
         marks_obtained: parseFloat(form.marks_obtained.value),
-        max_marks: parseFloat(form.max_marks.value),
-        remarks: form.remarks.value.trim() || null
+        max_marks: parseFloat(form.max_marks.value)
       };
-
-      const res = await fetch('/api/v1/marks', {
+      const res = await authFetch('/api/v1/marks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
@@ -905,18 +1270,16 @@
       }
     }
 
-    // 5. ATTENDANCE
+    // ATTENDANCE CRUD
     async function loadAttendance() {
       const status = document.getElementById('attendanceStatusFilter').value;
-      const res = await fetch(`/api/v1/attendance?status=${encodeURIComponent(status)}&per_page=50`);
+      const res = await authFetch(`/api/v1/attendance?status=${encodeURIComponent(status)}&per_page=50`);
       const json = await res.json();
       const tbody = document.getElementById('attendanceTableBody');
-
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px;">No attendance recorded.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px;">No attendance logged.</td></tr>';
         return;
       }
-
       tbody.innerHTML = json.data.map(a => `
         <tr>
           <td><strong>${a.first_name} ${a.last_name}</strong> (${a.roll_number})</td>
@@ -935,108 +1298,168 @@
         student_id: parseInt(form.student_id.value),
         subject_id: parseInt(form.subject_id.value),
         date: form.date.value,
-        status: form.status.value,
-        remarks: form.remarks.value.trim() || null
+        status: form.status.value
       };
-
-      const res = await fetch('/api/v1/attendance', {
+      const res = await authFetch('/api/v1/attendance', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data)
       });
       const json = await res.json();
       if (json.success) {
-        showToast('Attendance logged successfully!');
+        showToast('Attendance logged!');
         document.getElementById('addAttendanceDialog').close();
         form.reset();
         loadAttendance();
-        loadStats();
       } else {
         showToast(json.error ? json.error.message : 'Error logging attendance', true);
       }
     }
 
-    // 6. REPORTS & TRANSCRIPTS
-    async function loadReportsData() {
-      // Load low attendance table
-      const res = await fetch('/api/v1/reports/attendance/low');
-      const json = await res.json();
-      const tbody = document.getElementById('lowAttendanceBody');
-
-      if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--success); font-weight: 600;">🎉 No students currently have attendance below 75%!</td></tr>';
-        return;
-      }
-
-      tbody.innerHTML = json.data.map(item => `
-        <tr>
-          <td><strong>${item.roll_number}</strong></td>
-          <td>${item.student_name}</td>
-          <td>${item.email}</td>
-          <td>${item.total_sessions}</td>
-          <td>${item.attended_sessions}</td>
-          <td><strong style="color: var(--danger);">${item.attendance_percentage}%</strong></td>
-        </tr>
-      `).join('');
+    // Report Exports
+    function exportAcademic(format) {
+      const stuId = document.getElementById('exportStudentSelect').value;
+      if (!stuId) { showToast('Please select a student', true); return; }
+      const url = `/api/v1/reports/academic?student_id=${stuId}&format=${format}`;
+      if (format === 'json') window.open(url, '_blank');
+      else downloadReport(url, `student_academic_report.${format}`);
     }
 
-    async function loadTranscript(studentId) {
-      if (!studentId) {
-        document.getElementById('transcriptDisplay').style.display = 'none';
-        return;
-      }
-
-      const res = await fetch(`/api/v1/reports/students/${studentId}/transcript`);
-      const json = await res.json();
-      if (!json.success) return;
-
-      const data = json.data;
-      document.getElementById('transcriptDisplay').style.display = 'block';
-      document.getElementById('trName').textContent = data.student.name;
-      document.getElementById('trRoll').textContent = `Roll No: ${data.student.roll_number} | Status: ${data.student.status}`;
-      document.getElementById('trCgpa').textContent = data.academic_summary.cumulative_gpa.toFixed(2);
-
-      const sList = document.getElementById('trSemestersList');
-      if (!data.semesters.length) {
-        sList.innerHTML = '<div style="color:var(--text-muted); padding:12px 0;">No graded semesters available yet.</div>';
-        return;
-      }
-
-      sList.innerHTML = data.semesters.map(sem => `
-        <div style="background:#f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px; margin-bottom: 12px;">
-          <div style="display:flex; justify-content:space-between; margin-bottom:8px;">
-            <strong>${sem.semester_name}</strong>
-            <span>Term GPA: <strong>${sem.semester_gpa.toFixed(2)}</strong></span>
-          </div>
-          <table style="background:white; border-radius:6px;">
-            <thead>
-              <tr>
-                <th>Subject</th>
-                <th>Credits</th>
-                <th>Overall %</th>
-                <th>Grade</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${sem.subjects.map(sub => `
-                <tr>
-                  <td>${sub.subject_code} - ${sub.subject_name}</td>
-                  <td>${sub.credits}</td>
-                  <td>${sub.overall_percentage}%</td>
-                  <td><span class="badge badge-grade-a">${sub.overall_grade}</span></td>
-                </tr>
-              `).join('')}
-            </tbody>
-          </table>
-        </div>
-      `).join('');
+    function exportSubject(format) {
+      const subId = document.getElementById('exportSubjectSelect').value;
+      if (!subId) { showToast('Please select a subject', true); return; }
+      downloadReport(`/api/v1/reports/subject?subject_id=${subId}&format=${format}`, `subject_report.${format}`);
     }
 
-    // Default setup
+    function exportSemester(format) {
+      const semId = document.getElementById('exportSemesterSelect').value;
+      if (!semId) { showToast('Please select a semester', true); return; }
+      downloadReport(`/api/v1/reports/semester?semester_id=${semId}&format=${format}`, `semester_report.${format}`);
+    }
+
+    async function downloadReport(url, filename) {
+      showToast('Generating report export...');
+      try {
+        const res = await authFetch(url);
+        if (!res.ok) {
+          const json = await res.json();
+          showToast(json.error ? json.error.message : 'Export failed', true);
+          return;
+        }
+        const blob = await res.blob();
+        const blobUrl = window.URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = blobUrl;
+        a.download = filename;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        window.URL.revokeObjectURL(blobUrl);
+        showToast('Download complete!');
+      } catch (err) {
+        showToast('Download failed', true);
+      }
+    }
+
+    function debounce(func, wait) {
+      let timeout;
+      return function(...args) {
+        clearTimeout(timeout);
+        timeout = setTimeout(() => func.apply(this, args), wait);
+      };
+    }
+
+    function openRegisterModal() {
+      document.getElementById('registerDialog').showModal();
+    }
+
+    function switchModalRole(role) {
+      document.getElementById('modalSelectedRole').value = role;
+      const btnStu = document.getElementById('modalRoleStudent');
+      const btnFac = document.getElementById('modalRoleFaculty');
+      const btnAdm = document.getElementById('modalRoleAdmin');
+
+      [btnStu, btnFac, btnAdm].forEach(b => {
+        b.className = 'btn btn-sm btn-secondary';
+        b.style.background = '';
+        b.style.color = '';
+        b.style.fontWeight = 'normal';
+      });
+
+      const activeBtn = role === 'Student' ? btnStu : (role === 'Faculty' ? btnFac : btnAdm);
+      activeBtn.className = 'btn btn-sm';
+      activeBtn.style.background = '#fff';
+      activeBtn.style.color = 'var(--primary)';
+      activeBtn.style.fontWeight = '700';
+
+      document.getElementById('modalStudentFields').style.display = role === 'Student' ? 'block' : 'none';
+      document.getElementById('modalFacultyFields').style.display = role === 'Faculty' ? 'block' : 'none';
+    }
+
+    async function submitModalRegister(e) {
+      e.preventDefault();
+      const form = e.target;
+      const pwd = form.password.value;
+      const confirmPwd = form.confirm_password.value;
+      if (pwd !== confirmPwd) {
+        showToast('Passwords do not match!', true);
+        return;
+      }
+
+      const role = form.role.value;
+      const data = {
+        username: form.username.value.trim(),
+        email: form.email.value.trim(),
+        password: pwd,
+        role: role,
+        first_name: form.first_name.value.trim(),
+        last_name: form.last_name.value.trim(),
+      };
+
+      if (role === 'Student') {
+        if (form.roll_number && form.roll_number.value.trim()) data.roll_number = form.roll_number.value.trim();
+        if (form.gender) data.gender = form.gender.value;
+      } else if (role === 'Faculty') {
+        if (form.faculty_code && form.faculty_code.value.trim()) data.faculty_code = form.faculty_code.value.trim();
+        if (form.department) data.department = form.department.value.trim();
+      }
+
+      showToast('Creating account...');
+      try {
+        const res = await fetch('/api/v1/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          currentUser = json.data.user;
+          authToken = json.data.token;
+          localStorage.setItem('sms_auth_token', authToken);
+          showToast(`Welcome ${currentUser.username}! Registered as ${currentUser.role}.`);
+          document.getElementById('registerDialog').close();
+          form.reset();
+          updateAuthUI(currentUser);
+        } else {
+          showToast(json.error ? json.error.message : 'Registration failed', true);
+        }
+      } catch (err) {
+        showToast('Failed to connect to server', true);
+      }
+    }
+
+    function openRegisterPage(e) {
+      e.preventDefault();
+      if (window.location.protocol === 'file:' || window.location.pathname.endsWith('.html')) {
+        window.location.href = 'register.html';
+      } else {
+        window.location.href = '/register';
+      }
+    }
+
+    // Default initialization
     document.getElementById('attDateInput').value = new Date().toISOString().split('T')[0];
-    loadStats();
-    populateDropdowns();
-    loadStudents();
+    checkAuthSession();
   </script>
 </body>
 </html>

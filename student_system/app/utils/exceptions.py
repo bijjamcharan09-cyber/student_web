@@ -45,6 +45,18 @@ class NotFoundError(AppException):
     error_code = "NOT_FOUND"
 
 
+class UnauthorizedError(AppException):
+    """Raised when authentication fails or is missing."""
+    status_code = 401
+    error_code = "UNAUTHORIZED"
+
+
+class ForbiddenError(AppException):
+    """Raised when user lacks permission to access resource or perform action."""
+    status_code = 403
+    error_code = "FORBIDDEN"
+
+
 class ConflictError(AppException):
     """Raised when a resource state violates a unique constraint or conflict."""
     status_code = 409
