@@ -99,7 +99,8 @@ class ReportService:
                 sem_points += (credits * sub_pts)
                 subjects_list.append(sub_data)
 
-            sem_gpa = round(sem_points / sem_credits, 2) if sem_credits > 0 else 0.0
+            # JNTUH SGPA Calculation: SGPA = Sum(Credits * Grade_Points) / Sum(Credits)
+            sem_sgpa = round(sem_points / sem_credits, 2) if sem_credits > 0 else 0.0
             cumulative_credits += sem_credits
             cumulative_points += sem_points
 
@@ -107,11 +108,15 @@ class ReportService:
                 "semester_id": sem_id,
                 "semester_name": sem_data["semester_name"],
                 "total_credits": sem_credits,
-                "semester_gpa": sem_gpa,
+                "semester_gpa": sem_sgpa,
+                "sgpa": sem_sgpa,
                 "subjects": subjects_list,
             })
 
+        # JNTUH CGPA Calculation: CGPA = Cumulative Points / Cumulative Credits
         cgpa = round(cumulative_points / cumulative_credits, 2) if cumulative_credits > 0 else 0.0
+        # JNTUH Equivalent Percentage = (CGPA - 0.5) * 10
+        equiv_pct = round((cgpa - 0.5) * 10, 2) if cgpa >= 0.5 else 0.0
 
         # Get attendance summary
         attendance_info = AttendanceService.get_student_summary(student_id)
@@ -129,6 +134,8 @@ class ReportService:
                 "total_semesters_completed": len(semester_reports),
                 "total_credits_earned": cumulative_credits,
                 "cumulative_gpa": cgpa,
+                "cgpa": cgpa,
+                "equivalent_percentage": equiv_pct,
             },
             "semesters": semester_reports,
             "attendance": attendance_info["overall_summary"],
@@ -157,3 +164,18 @@ class ReportService:
                 })
 
         return at_risk
+
+    @staticmethod
+    def calculate_jntuh_sgpa(subject_credits_and_points: List[tuple[float, float]]) -> float:
+        """
+        Calculate Semester Grade Point Average (SGPA) based on JNTUH formula:
+        SGPA = Sum(C_i * G_i) / Sum(C_i)
+        where:
+        - C_i is the course credits
+        - G_i is the JNTUH 10-point grade point:
+          >=90%: O (10), 80-89%: A+ (9), 70-79%: A (8), 60-69%: B+ (7), 50-59%: B (6), 40-49%: C (5), <40%: F (0).
+        """
+        total_credits = sum(float(c) for c, _ in subject_credits_and_points)
+        total_points = sum(float(c) * float(p) for c, p in subject_credits_and_points)
+        return round(total_points / total_credits, 2) if total_credits > 0 else 0.0
+

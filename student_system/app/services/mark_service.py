@@ -14,21 +14,32 @@ from app.utils.exceptions import NotFoundError, ConflictError, ValidationError
 
 
 def compute_grade_and_points(marks_obtained: float, max_marks: float) -> tuple[str, float]:
-    """Compute percentage, letter grade, and grade points."""
+    """
+    Compute percentage, letter grade, and grade points based on JNTUH (10-point scale) insights:
+    >= 90%        : O  (Outstanding)   -> 10.0 grade points
+    80% to 89.99% : A+ (Excellent)     -> 9.0 grade points
+    70% to 79.99% : A  (Very Good)     -> 8.0 grade points
+    60% to 69.99% : B+ (Good)          -> 7.0 grade points
+    50% to 59.99% : B  (Above Average) -> 6.0 grade points
+    40% to 49.99% : C  (Pass)          -> 5.0 grade points
+    < 40%         : F  (Fail)          -> 0.0 grade points
+    """
     if max_marks <= 0:
         return "F", 0.0
 
-    percentage = (marks_obtained / max_marks) * 100.0
+    percentage = round((marks_obtained / max_marks) * 100.0, 2)
     if percentage >= 90:
-        return "A+", 4.0
+        return "O", 10.0
     elif percentage >= 80:
-        return "A", 3.7
+        return "A+", 9.0
     elif percentage >= 70:
-        return "B", 3.0
+        return "A", 8.0
     elif percentage >= 60:
-        return "C", 2.0
+        return "B+", 7.0
     elif percentage >= 50:
-        return "D", 1.0
+        return "B", 6.0
+    elif percentage >= 40:
+        return "C", 5.0
     else:
         return "F", 0.0
 

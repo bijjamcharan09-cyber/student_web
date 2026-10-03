@@ -3,12 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Create Your Account - Student Management System</title>
+  <title>Admin User Creation - Student Management System</title>
   <style>
     :root {
       --primary: #4f46e5;
       --primary-hover: #4338ca;
-      --bg: #f1f5f9;
+      --bg: #f8fafc;
       --card-bg: #ffffff;
       --text: #0f172a;
       --text-muted: #64748b;
@@ -33,7 +33,7 @@
 
     .role-selector {
       display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; margin-bottom: 24px;
-      background: #f8fafc; padding: 6px; border-radius: 8px; border: 1px solid var(--border);
+      background: #f1f5f9; padding: 6px; border-radius: 8px; border: 1px solid var(--border);
     }
     .role-btn {
       background: none; border: none; padding: 10px; font-size: 0.9rem; font-weight: 600;
@@ -62,9 +62,9 @@
     }
     .btn-submit:hover { background: var(--primary-hover); }
 
-    .login-prompt { text-align: center; margin-top: 20px; font-size: 0.9rem; color: var(--text-muted); }
-    .login-prompt a { color: var(--primary); font-weight: 600; text-decoration: none; }
-    .login-prompt a:hover { text-decoration: underline; }
+    .back-nav { text-align: center; margin-top: 20px; font-size: 0.9rem; color: var(--text-muted); }
+    .back-nav a { color: var(--primary); font-weight: 600; text-decoration: none; }
+    .back-nav a:hover { text-decoration: underline; }
 
     #alertBox {
       display: none; padding: 12px 16px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 18px; font-weight: 500;
@@ -76,20 +76,20 @@
 <body>
 
   <div class="brand-header">
-    <a href="dashboard.html" onclick="openDashboard(event)" class="brand-logo">
+    <div class="brand-logo">
       <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
         <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
       </svg>
       <span>Student Management System</span>
-    </a>
-    <div class="brand-sub">Register a new account to access your role-based portal</div>
+    </div>
+    <div class="brand-sub">Administrator Portal — Register New User</div>
   </div>
 
   <div class="card">
     <div id="alertBox"></div>
 
-    <!-- Role Selection Tabs -->
+    <!-- Role Selection Tabs for Administrator -->
     <div class="role-selector">
       <button type="button" class="role-btn active" id="btnRoleStudent" onclick="selectRole('Student')">🎓 Student</button>
       <button type="button" class="role-btn" id="btnRoleFaculty" onclick="selectRole('Faculty')">👨‍🏫 Faculty</button>
@@ -103,24 +103,24 @@
       <div class="grid-2">
         <div class="form-group">
           <label>First Name *</label>
-          <input type="text" name="first_name" placeholder="e.g. John" required>
+          <input type="text" name="first_name" placeholder="e.g. Ravi" required>
         </div>
         <div class="form-group">
-          <label>Last Name *</label>
-          <input type="text" name="last_name" placeholder="e.g. Doe" required>
+          <label>Last Name</label>
+          <input type="text" name="last_name" placeholder="e.g. Kumar">
         </div>
       </div>
 
       <!-- Account Username & Email -->
       <div class="grid-2">
         <div class="form-group">
-          <label>Username *</label>
-          <input type="text" name="username" placeholder="e.g. jdoe" minlength="3" required>
-          <div class="input-hint">Min 3 characters, unique</div>
+          <label>Email Address *</label>
+          <input type="email" name="email" placeholder="ravi@example.com" required>
         </div>
         <div class="form-group">
-          <label>Email Address *</label>
-          <input type="email" name="email" placeholder="john.doe@example.com" required>
+          <label>Username (optional)</label>
+          <input type="text" name="username" placeholder="Auto-generated if empty">
+          <div class="input-hint">Derived from email if left blank</div>
         </div>
       </div>
 
@@ -128,22 +128,14 @@
       <div id="studentFields">
         <div class="grid-2">
           <div class="form-group">
-            <label>Roll Number</label>
+            <label>Roll Number (optional)</label>
             <input type="text" name="roll_number" placeholder="e.g. 25291A6601">
-            <div class="input-hint">Links existing records, or leave empty to auto-generate</div>
+            <div class="input-hint">Links existing student or auto-generates new ID</div>
           </div>
           <div class="form-group">
             <label>Date of Birth</label>
             <input type="date" name="date_of_birth" value="2002-05-15">
           </div>
-        </div>
-        <div class="form-group">
-          <label>Gender</label>
-          <select name="gender">
-            <option value="Male">Male</option>
-            <option value="Female">Female</option>
-            <option value="Other">Other</option>
-          </select>
         </div>
       </div>
 
@@ -153,16 +145,12 @@
           <div class="form-group">
             <label>Faculty Code / Employee ID</label>
             <input type="text" name="faculty_code" placeholder="e.g. FAC-101">
-            <div class="input-hint">Leave blank to auto-generate</div>
+            <div class="input-hint">Auto-generated if blank</div>
           </div>
           <div class="form-group">
-            <label>Department *</label>
+            <label>Department</label>
             <input type="text" name="department" value="Computer Science" placeholder="e.g. Computer Science">
           </div>
-        </div>
-        <div class="form-group">
-          <label>Designation</label>
-          <input type="text" name="designation" value="Assistant Professor" placeholder="e.g. Lecturer, Professor">
         </div>
       </div>
 
@@ -178,15 +166,17 @@
         </div>
       </div>
 
-      <button type="submit" id="submitBtn" class="btn-submit">Create Account</button>
+      <button type="submit" id="submitBtn" class="btn-submit">Create User Account</button>
     </form>
 
-    <div class="login-prompt">
-      Already registered? <a href="dashboard.html" onclick="openDashboard(event)">Go to Dashboard & Sign In</a>
+    <div class="back-nav">
+      <a href="/dashboard">← Back to Dashboard</a>
     </div>
   </div>
 
   <script>
+    const authToken = localStorage.getItem('sms_auth_token') || '';
+
     function selectRole(role) {
       document.getElementById('selectedRole').value = role;
       document.querySelectorAll('.role-btn').forEach(b => b.classList.remove('active'));
@@ -222,7 +212,6 @@
 
       const role = form.role.value;
       const payload = {
-        username: form.username.value.trim(),
         email: form.email.value.trim(),
         password: pwd,
         role: role,
@@ -230,59 +219,49 @@
         last_name: form.last_name.value.trim()
       };
 
+      if (form.username && form.username.value.trim()) {
+        payload.username = form.username.value.trim();
+      }
+
       if (role === 'Student') {
         if (form.roll_number.value.trim()) payload.roll_number = form.roll_number.value.trim();
-        payload.date_of_birth = form.date_of_birth.value;
-        payload.gender = form.gender.value;
+        if (form.date_of_birth.value) payload.date_of_birth = form.date_of_birth.value;
       } else if (role === 'Faculty') {
         if (form.faculty_code.value.trim()) payload.faculty_code = form.faculty_code.value.trim();
-        payload.department = form.department.value.trim();
-        payload.designation = form.designation.value.trim();
+        if (form.department.value.trim()) payload.department = form.department.value.trim();
       }
 
       const submitBtn = document.getElementById('submitBtn');
       submitBtn.disabled = true;
-      submitBtn.textContent = 'Registering account...';
+      submitBtn.textContent = 'Creating user...';
 
       try {
-        const res = await fetch('/api/v1/auth/signup', {
+        const headers = { 'Content-Type': 'application/json' };
+        if (authToken) {
+          headers['Authorization'] = `Bearer ${authToken}`;
+        }
+
+        const res = await fetch('/api/v1/auth/register', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: headers,
           body: JSON.stringify(payload)
         });
 
         const json = await res.json();
         if (json.success) {
-          showAlert(`🎉 Registration successful! Welcome ${json.data.user.username}. Redirecting to dashboard...`, 'success');
-          // Store token in browser localStorage for persistent authenticated requests
-          if (json.data && json.data.token) {
-            localStorage.setItem('sms_auth_token', json.data.token);
-          }
-          setTimeout(() => {
-            if (window.location.protocol === 'file:' || window.location.pathname.endsWith('.html')) {
-              window.location.href = 'dashboard.html';
-            } else {
-              window.location.href = '/dashboard';
-            }
-          }, 1200);
-        } else {
-          showAlert(json.error ? json.error.message : 'Registration failed.', 'danger');
+          showAlert(`User "${json.data.username}" (${json.data.role}) created successfully!`, 'success');
+          form.reset();
           submitBtn.disabled = false;
-          submitBtn.textContent = 'Create Account';
+          submitBtn.textContent = 'Create User Account';
+        } else {
+          showAlert(json.error ? json.error.message : 'User creation failed.', 'danger');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create User Account';
         }
       } catch (err) {
-        showAlert('Could not reach the server. Please check your network and try again.', 'danger');
+        showAlert('Network error: Could not reach the server.', 'danger');
         submitBtn.disabled = false;
-        submitBtn.textContent = 'Create Account';
-      }
-    }
-
-    function openDashboard(e) {
-      if (e) e.preventDefault();
-      if (window.location.protocol === 'file:' || window.location.pathname.endsWith('.html')) {
-        window.location.href = 'dashboard.html';
-      } else {
-        window.location.href = '/dashboard';
+        submitBtn.textContent = 'Create User Account';
       }
     }
 

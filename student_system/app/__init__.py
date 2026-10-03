@@ -6,6 +6,8 @@ from flask import Flask, jsonify, request, render_template
 from config import config_by_name
 from app.utils.exceptions import AppException
 from app.utils.responses import error_response, api_response
+from app.utils.auth import roles_required
+from app.services.auth_service import AuthService
 from app.api import (
     students_bp,
     subjects_bp,
@@ -39,7 +41,7 @@ def create_app(config_name: str = "development") -> Flask:
     # Health & System Status Endpoints
     @app.route("/", methods=["GET"])
     def root():
-        # If requested by a web browser, render the interactive Web Dashboard!
+        # If requested by a web browser, render the interactive Web Dashboard
         best = request.accept_mimetypes.best_match(["text/html", "application/json"])
         if best == "text/html" and request.accept_mimetypes[best] > request.accept_mimetypes["application/json"]:
             return render_template("dashboard.html")
@@ -71,10 +73,15 @@ def create_app(config_name: str = "development") -> Flask:
         """Render visual HTML/CSS/JS dashboard."""
         return render_template("dashboard.html")
 
-    @app.route("/register", methods=["GET"])
+    @app.route("/register", methods=["GET", "POST"])
     @app.route("/register.html", methods=["GET"])
+    @roles_required("Admin")
     def register_page():
-        """Render visual registration page for all users."""
+        """Administrator-only: Render or submit registration."""
+        if request.method == "POST":
+            payload = request.get_json(silent=True) or request.form.to_dict()
+            user = AuthService.register_user(payload, requested_by_role="Admin")
+            return api_response(data=user, message="User account registered successfully by administrator.", status_code=201)
         return render_template("register.html")
 
     @app.route("/login", methods=["GET"])

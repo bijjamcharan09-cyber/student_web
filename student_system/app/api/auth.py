@@ -48,25 +48,6 @@ def get_current_profile():
     return api_response(data=user_clean, message="Authenticated profile retrieved successfully.")
 
 
-@auth_bp.route("/signup", methods=["POST"])
-def signup():
-    """Public user registration open to everyone. Creates account and immediately logs user in."""
-    payload = request.get_json(silent=True) or {}
-    result = AuthService.public_register(payload)
-    user = result["user"]
-    token = result["token"]
-
-    # Automatically establish session
-    session["user_id"] = user["id"]
-    session["role"] = user["role"]
-
-    return api_response(
-        data={"user": user, "token": token},
-        message=f"Account registered successfully! Welcome {user['username']}.",
-        status_code=201,
-    )
-
-
 @auth_bp.route("/register", methods=["POST"])
 @roles_required("Admin")
 def register_user():
@@ -74,3 +55,14 @@ def register_user():
     payload = request.get_json(silent=True) or {}
     user = AuthService.register_user(payload, requested_by_role="Admin")
     return api_response(data=user, message="User account registered successfully.", status_code=201)
+
+
+@auth_bp.route("/users", methods=["GET"])
+@roles_required("Admin")
+def list_users():
+    """Administrator-only list of all users."""
+    role = request.args.get("role")
+    limit = min(int(request.args.get("limit", 100)), 200)
+    offset = int(request.args.get("offset", 0))
+    users = AuthService.list_users(role=role, limit=limit, offset=offset)
+    return api_response(data=users, message="Users retrieved successfully.")

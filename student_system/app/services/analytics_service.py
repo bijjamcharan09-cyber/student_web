@@ -92,6 +92,7 @@ class AnalyticsService:
                 "semester_id": sem["semester_id"],
                 "semester_name": sem["semester_name"],
                 "semester_gpa": sem["semester_gpa"],
+                "sgpa": sem.get("sgpa", sem["semester_gpa"]),
                 "total_credits": sem["total_credits"],
                 "subject_count": len(sem["subjects"]),
             })
