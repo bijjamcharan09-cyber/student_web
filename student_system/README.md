@@ -1,47 +1,55 @@
 # Student Management System (SMS) - Version 2.0
 
-A production-ready, secure, and modular Student Management System built using **Python**, **Flask**, and **MySQL**, featuring backend-enforced **Role-Based Access Control (RBAC)**, an interactive **Student Analytics Dashboard**, and **Multi-Format Report Exports (JSON, CSV, PDF)**.
+A production-ready, secure, and modular Student Management System built using **Python**, **Flask**, and **MySQL**, featuring backend-enforced **Role-Based Access Control (RBAC)**, **Admin-Only User Registration**, **JNTUH 10-Point SGPA & CGPA Calculation**, role-tailored **Analytics Dashboards**, and **Multi-Format Report Exports (JSON, CSV, PDF)**.
 
 ---
 
 ## Table of Contents
-1. [What's New in Version 2.0](#1-whats-new-in-version-20)
+1. [Core Features in Version 2.0](#1-core-features-in-version-20)
 2. [Architecture & Design](#2-architecture--design)
-3. [Database Schema (3NF)](#3-database-schema-3nf)
-4. [Project Folder Structure](#4-project-folder-structure)
+3. [JNTUH SGPA & Grading System](#3-jntuh-sgpa--grading-system)
+4. [Admin-Only User Registration Architecture](#4-admin-only-user-registration-architecture)
 5. [Role-Based Access Control (RBAC) Matrix](#5-role-based-access-control-rbac-matrix)
-6. [Pre-Configured Accounts](#6-pre-configured-accounts)
-7. [Setup & Installation](#7-setup--installation)
-8. [Database Initialization & Migration](#8-database-initialization--migration)
-9. [Running the Application](#9-running-the-application)
-10. [Running the Test Suite](#10-running-the-test-suite)
-11. [V2 API Documentation](#11-v2-api-documentation)
-12. [Analytics & Mathematical Engine](#12-analytics--mathematical-engine)
-13. [Report Export Formats](#13-report-export-formats)
+6. [Database Schema (3NF)](#6-database-schema-3nf)
+7. [Project Folder Structure](#7-project-folder-structure)
+8. [Pre-Configured Accounts](#8-pre-configured-accounts)
+9. [Setup & Installation](#9-setup--installation)
+10. [Database Initialization & Migration](#10-database-initialization--migration)
+11. [Running the Application](#11-running-the-application)
+12. [Running the Test Suite](#12-running-the-test-suite)
+13. [V2 API Documentation](#13-v2-api-documentation)
+14. [Report Export Center](#14-report-export-center)
 
 ---
 
-## 1. What's New in Version 2.0
+## 1. Core Features in Version 2.0
 
-Version 2.0 elevates the system from an open REST utility to an enterprise-grade academic platform with three major pillars:
+Version 2.0 provides an enterprise-grade academic management architecture with four core pillars:
 
-1. **Role-Based Access Control (RBAC) & IDOR Protection**:
-   - Three distinct roles: **Admin**, **Faculty**, and **Student**.
-   - Backend-enforced authorization via decorators (`@login_required`, `@roles_required`) and object-level scoping functions (`check_student_scope`, `check_subject_management_scope`).
-   - Strict defense against Insecure Direct Object References (IDOR): students cannot inspect or download other students' grades or transcripts.
-   - Dual authentication: Signed HTTP-only session cookies for web browsers and tamper-proof bearer tokens (`itsdangerous`) for API clients.
-   - Universal account self-registration (`/register` and in-dashboard modal) with instant auto-login.
+1. **Internal RBAC & IDOR Protection**:
+   - Supported Roles: **Admin**, **Faculty**, and **Student**.
+   - **Internal Authorization**: RBAC operates as an internal backend security mechanism. Users cannot choose their role during login or self-assign privileges.
+   - Backend-enforced decorators (`@login_required`, `@roles_required`) and object-level authorization helpers (`check_student_scope`, `check_subject_management_scope`).
+   - Complete IDOR (Insecure Direct Object Reference) defense: Students are strictly isolated to their own academic profiles, marks, attendance, and reports.
+   - Dual authentication: Cryptographically signed HTTP-only session cookies and bearer tokens (`itsdangerous`).
 
-2. **Student Analytics Dashboard**:
-   - Role-specific analytical views calculating metrics dynamically from live MySQL data without hardcoded values.
-   - **Student View**: Subject-wise marks breakdown, overall weighted average, CGPA, attendance rates, best/weakest subject comparisons, and assessment trends.
-   - **Faculty View**: Course load, class averages, pass rates, and student enrollments for assigned subjects.
-   - **Admin View**: Total student count, department distributions, system KPIs, and low-attendance risk alerts.
-   - Zero-division safety: handles missing marks and absent attendance records gracefully.
+2. **Admin-Only User Registration**:
+   - **No Public Registration**: Public signup endpoints and self-registration forms are eliminated.
+   - Only authenticated Administrators can provision new accounts (**Student**, **Faculty**, or **Admin**).
+   - Unauthenticated access to `/register` yields `401 Unauthorized`. Non-admin access yields `403 Forbidden`.
+   - Admin enters user details $\to$ system auto-provisions or links corresponding student/faculty records $\to$ user can immediately sign in.
 
-3. **Multi-Format Reports Center**:
-   - 5 comprehensive reports: Student Academic Transcript, Marks Registry, Attendance Logs, Subject Class Performance, and Semester Term Summary.
-   - Dual-streaming export formats: **Web JSON** (`?format=json`), **RFC 4180 CSV** (`?format=csv`), and **Vector PDF** (`?format=pdf` powered by `reportlab`) with academic headers, data tables, and page counters.
+3. **JNTUH Academic SGPA & CGPA Calculation**:
+   - Implemented strictly according to **JNTUH (Jawaharlal Nehru Technological University Hyderabad)** academic regulations.
+   - **10-Point Absolute Grading Scale**: Letter grades ($O, A+, A, B+, B, C, F$) and grade points ($10, 9, 8, 7, 6, 5, 0$).
+   - **Credit-Weighted SGPA Formula**: $\text{SGPA} = \frac{\sum (C_i \times G_i)}{\sum C_i}$ rounded to 2 decimal places.
+   - **JNTUH Percentage Conversion**: $\text{Equivalent } \% = (\text{CGPA} - 0.5) \times 10$.
+
+4. **Role-Appropriate Analytics & Multi-Format Reports**:
+   - **Student Portal**: Subject-wise marks, attendance percentages, SGPA/CGPA, performance trends, and official PDF transcripts.
+   - **Faculty Portal**: Course load, student attendance, class averages, pass rates, and mark entry for assigned courses.
+   - **Admin Portal**: Institutional KPIs, department distribution, course management, and User Management.
+   - Export formats: **Web JSON**, **RFC 4180 CSV**, and **Vector PDF** via `reportlab`.
 
 ---
 
@@ -50,38 +58,122 @@ Version 2.0 elevates the system from an open REST utility to an enterprise-grade
 The application follows a clean **3-Tier Layered Architecture**:
 
 ```
-[ Web Browser (Dashboard/Login/Register) / REST API Clients ]
-                          │
-                          ▼
-            [ Security & Auth Guard ]
-    (Session Cookie & Bearer Token Verification, RBAC Check)
-                          │
-                          ▼
-         [ Flask API Layer (Blueprints) ]
-   (Route handling, validation, JSON/CSV/PDF response envelopes)
-                          │
-                          ▼
-        [ Service Layer (Business Logic) ]
-  (Analytics calculations, GPA logic, permissions, ReportLab generation)
-                          │
-                          ▼
-          [ Repository / DAO Layer ]
-  (Parameterized SQL queries, CRUD operations, transaction boundaries)
-                          │
-                          ▼
-          [ PyMySQL Connection Pool ]
-  (ACID transaction context managers, parameter binding)
-                          │
-                          ▼
-         [ MySQL 8.0+ Database (3NF) ]
-  (Relational tables, foreign keys, composite indexes, constraints)
+[ Web Browser (Dashboard/Login/Admin User Mgmt) / REST Clients ]
+                              │
+                              ▼
+                 [ Security & Auth Guard ]
+    (Session Cookie & Bearer Token Verification, Server-side RBAC)
+                              │
+                              ▼
+              [ Flask API Layer (Blueprints) ]
+        (Route handling, validation, JSON/CSV/PDF responses)
+                              │
+                              ▼
+             [ Service Layer (Business Logic) ]
+     (JNTUH SGPA/CGPA engine, user provisioning, ReportLab generator)
+                              │
+                              ▼
+               [ Repository / DAO Layer ]
+     (Parameterized SQL queries, CRUD operations, transactions)
+                              │
+                              ▼
+               [ PyMySQL Connection Pool ]
+            (ACID transaction managers, parameter binding)
+                              │
+                              ▼
+              [ MySQL 8.0+ Database (3NF) ]
+       (Relational tables, foreign keys, indexes, constraints)
 ```
 
 ---
 
-## 3. Database Schema (3NF)
+## 3. JNTUH SGPA & Grading System
 
-The database schema is fully normalized to **Third Normal Form (3NF)** with explicit foreign keys, cascade rules, and indexes. V2 introduces `faculty`, `users`, and `faculty_subjects` without modifying existing V1 tables.
+Under JNTUH regulations, student evaluation follows an absolute 10-point scale:
+
+### JNTUH Absolute Grading Scale
+
+| Percentage of Marks Secured | Letter Grade | Grade Points ($G_i$) | Description |
+| :--- | :---: | :---: | :--- |
+| $\ge 90\%$ | **O** | **10.0** | Outstanding |
+| $80\% - 89.99\%$ | **A+** | **9.0** | Excellent |
+| $70\% - 79.99\%$ | **A** | **8.0** | Very Good |
+| $60\% - 69.99\%$ | **B+** | **7.0** | Good |
+| $50\% - 59.99\%$ | **B** | **6.0** | Above Average |
+| $40\% - 49.99\%$ | **C** | **5.0** | Pass *(Minimum Pass Grade)* |
+| $< 40\%$ | **F** | **0.0** | Fail |
+
+### Mathematical Formulas
+
+1. **Semester Grade Point Average (SGPA)**:
+   $$\text{SGPA} = \frac{\sum_{i=1}^{N} (C_i \times G_i)}{\sum_{i=1}^{N} C_i}$$
+   where $C_i$ is the credit weight of subject $i$, and $G_i$ is the grade point earned in subject $i$.
+
+2. **Cumulative Grade Point Average (CGPA)**:
+   $$\text{CGPA} = \frac{\sum_{j=1}^{M} (C_j \times G_j)}{\sum_{j=1}^{M} C_j}$$
+   computed across all completed semesters.
+
+3. **Official JNTUH Percentage Equivalent**:
+   $$\text{Equivalent Percentage (\%)} = (\text{CGPA} - 0.5) \times 10$$
+
+---
+
+## 4. Admin-Only User Registration Architecture
+
+To guarantee institutional integrity, public user registration is permanently disabled.
+
+```text
+Admin Login (Credentials verified)
+              ↓
+Admin Dashboard → User Management Tab
+              ↓
+Click "+ Create User"
+              ↓
+Enter Details:
+  • Name: Ravi Kumar
+  • Email: ravi@example.com
+  • Password: ****************
+  • Role: Student (or Faculty / Admin)
+  • Optional: Roll Number / Faculty Code
+              ↓
+POST /api/v1/auth/register (Requires Admin Session)
+              ↓
+Backend Provisions User in MySQL:
+  • Hashes password securely (PBKDF2/SHA-256)
+  • Auto-links or creates Student / Faculty record
+              ↓
+New user logs in with their credentials and accesses their portal
+```
+
+---
+
+## 5. Role-Based Access Control (RBAC) Matrix
+
+| Endpoint | Method | Admin | Faculty | Student | Security Policy |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| `/api/v1/auth/login` | `POST` | ✅ | ✅ | ✅ | Public sign-in; returns session cookie + bearer token |
+| `/api/v1/auth/logout` | `POST` | ✅ | ✅ | ✅ | Clears session cookie and invalidates client state |
+| `/api/v1/auth/me` | `GET` | ✅ | ✅ | ✅ | Returns authenticated user profile and role |
+| `/api/v1/auth/register` | `POST` | ✅ | ❌ | ❌ | **Admin Only**: Creates new user accounts |
+| `/api/v1/auth/users` | `GET` | ✅ | ❌ | ❌ | **Admin Only**: Lists registered system accounts |
+| `/register` (Web) | `GET/POST`| ✅ | ❌ | ❌ | **Admin Only**: Returns 401 unauth / 403 forbidden |
+| `/api/v1/faculty/**` | Any | ✅ | ❌ | ❌ | Admin only |
+| `/api/v1/students` | `POST` | ✅ | ❌ | ❌ | Admin only |
+| `/api/v1/students` | `GET` | ✅ | ✅ | ❌ | Students restricted to their own record |
+| `/api/v1/students/<id>` | `GET` | ✅ | ✅* | ✅* | `*` IDOR Protection: Faculty must teach course; Student must own ID |
+| `/api/v1/analytics/student/<id>` | `GET` | ✅ | ✅* | ✅* | `*` Scoped by enrollment; students blocked from other students |
+| `/api/v1/analytics/student/me` | `GET` | ❌ | ❌ | ✅ | Automatically resolves student ID from active session |
+| `/api/v1/analytics/faculty` | `GET` | ✅ | ✅ | ❌ | Aggregates metrics across assigned courses |
+| `/api/v1/analytics/overview` | `GET` | ✅ | ❌ | ❌ | System-wide performance and enrollment statistics |
+| `/api/v1/reports/academic` | `GET` | ✅ | ✅* | ✅* | Supports `?format=json\|csv\|pdf` with IDOR checks |
+| `/api/v1/reports/marks` | `GET` | ✅ | ✅* | ✅* | Marks registry scoped by permissions |
+| `/api/v1/reports/attendance` | `GET` | ✅ | ✅* | ✅* | Attendance registry scoped by permissions |
+| `/api/v1/reports/subject/<id>` | `GET` | ✅ | ✅* | ❌ | Course class performance (assigned faculty only) |
+| `/api/v1/reports/semester/<id>`| `GET` | ✅ | ✅ | ❌ | Term-level performance breakdown |
+
+---
+
+## 6. Database Schema (3NF)
 
 ```mermaid
 erDiagram
@@ -113,44 +205,45 @@ erDiagram
         timestamp updated_at
     }
 
+    students {
+        int id PK
+        varchar roll_number UK
+        varchar first_name
+        varchar last_name
+        varchar email UK
+        date date_of_birth
+        varchar gender
+        int current_semester_id FK
+        varchar status
+    }
+
     faculty {
         int id PK
         varchar faculty_code UK
         varchar first_name
         varchar last_name
         varchar email UK
-        varchar phone
         varchar department
         varchar designation
-        timestamp created_at
-    }
-
-    faculty_subjects {
-        int id PK
-        int faculty_id FK
-        int subject_id FK
-        int semester_id FK
-        timestamp assigned_at
     }
 ```
 
 ---
 
-## 4. Project Folder Structure
+## 7. Project Folder Structure
 
 ```
 student_system/
 ├── .env.example              # Template environment configuration
 ├── .env                      # Local configuration (Git-ignored)
-├── requirements.txt          # Python dependencies (Flask, PyMySQL, reportlab, waitress)
-├── config.py                 # Centralized configuration & environment loader
-├── run.py                    # Application entry point
+├── requirements.txt          # Dependencies (Flask, PyMySQL, reportlab, waitress)
+├── config.py                 # Centralized environment loader
+├── run.py                    # Application WSGI entry point
 ├── app/
 │   ├── __init__.py           # Application Factory, Blueprint registration & web routes
-│   ├── db.py                 # Thread-safe MySQL connection & transaction management
+│   ├── db.py                 # Thread-safe MySQL connection & transaction pool
 │   ├── api/                  # Flask Blueprints (API endpoints)
-│   │   ├── __init__.py
-│   │   ├── auth.py           # Login, logout, profile (/me), and signup endpoints
+│   │   ├── auth.py           # Admin registration, login, logout, /me, and /users
 │   │   ├── analytics.py      # Student, faculty, and overview analytics routes
 │   │   ├── reports.py        # Multi-format reports (JSON, CSV, PDF) with RBAC
 │   │   ├── faculty.py        # Faculty CRUD & course assignment
@@ -160,16 +253,14 @@ student_system/
 │   │   ├── marks.py          # Assessment grading & atomic batch operations
 │   │   └── attendance.py     # Attendance tracking & batch operations
 │   ├── services/             # Business & calculation logic
-│   │   ├── __init__.py
-│   │   ├── auth_service.py   # Password hashing (PBKDF2) & user provisioning
-│   │   ├── analytics_service.py # Dynamic metrics, averages, comparisons & trends
+│   │   ├── auth_service.py   # Admin user creation, password verification
+│   │   ├── mark_service.py   # JNTUH 10-point scale grading & marks enrichment
+│   │   ├── report_service.py # JNTUH SGPA/CGPA transcript engine & alerts
+│   │   ├── analytics_service.py # Dynamic metrics, comparisons & trends
 │   │   ├── report_generator.py  # ReportLab PDF & CSV streaming generator
-│   │   ├── report_service.py # Academic transcript & attendance calculations
 │   │   ├── student_service.py
-│   │   ├── mark_service.py
 │   │   └── attendance_service.py
 │   ├── repositories/         # Parameterized SQL data access layer
-│   │   ├── __init__.py
 │   │   ├── user_repo.py      # User authentication queries
 │   │   ├── faculty_repo.py   # Faculty records & teaching assignments
 │   │   ├── student_repo.py
@@ -178,11 +269,10 @@ student_system/
 │   │   ├── mark_repo.py
 │   │   └── attendance_repo.py
 │   ├── templates/            # Frontend interfaces
-│   │   ├── dashboard.html    # Interactive V2 Dashboard with role switcher & charts
-│   │   ├── register.html     # Universal role registration page
-│   │   └── login.html        # Dedicated sign-in page
+│   │   ├── dashboard.html    # Role-tailored dashboard with Admin User Management
+│   │   ├── login.html        # Clean, role-agnostic sign-in form
+│   │   └── register.html     # Admin-only user creation interface
 │   └── utils/                # Cross-cutting utilities
-│       ├── __init__.py
 │       ├── auth.py           # RBAC decorators, token signing, IDOR validation
 │       ├── exceptions.py     # Custom exceptions (401, 403, 404, 409, 422)
 │       ├── responses.py      # Standardized JSON response envelope
@@ -192,61 +282,36 @@ student_system/
 │   ├── migrate_v2.py         # Additive V2 migration script (preserves existing data)
 │   ├── seed.sql              # Base seed data
 │   └── init_db.py            # Database initializer script
-└── tests/                    # Automated test suite (42 tests, 100% passing)
+└── tests/                    # Automated test suite (43 tests, 100% passing)
     ├── conftest.py           # SQLite in-memory test database fixture
-    ├── test_v2_features.py   # RBAC, IDOR, analytics, registration & export tests
-    ├── test_api_common.py    # Error handling & status code tests
+    ├── test_v2_features.py   # RBAC, IDOR, admin-only registration, login & exports
+    ├── test_marks.py         # JNTUH 10-point grading & SGPA calculation tests
+    ├── test_reports.py       # JNTUH transcript & attendance alert tests
     ├── test_students.py      # Student profile & enrollment tests
     ├── test_subjects.py      # Subject & department tests
     ├── test_semesters.py     # Semester validation tests
-    ├── test_marks.py         # Marks bounds & batch transaction tests
     ├── test_attendance.py    # Attendance logging & summary tests
-    ├── test_reports.py       # Transcript & report tests
-    └── test_validators.py    # Validation unit tests
+    ├── test_api_common.py    # Error handling & status code tests
+    └── test_validators.py    # Input validation tests
 ```
 
 ---
 
-## 5. Role-Based Access Control (RBAC) Matrix
+## 8. Pre-Configured Accounts
 
-| Endpoint | Method | Admin | Faculty | Student | Security Policy |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| `/api/v1/auth/signup` | `POST` | ✅ | ✅ | ✅ | Public self-registration (auto-login enabled) |
-| `/api/v1/auth/login` | `POST` | ✅ | ✅ | ✅ | Public sign-in (session cookie + bearer token) |
-| `/api/v1/auth/me` | `GET` | ✅ | ✅ | ✅ | Authenticated session profile |
-| `/api/v1/faculty/**` | Any | ✅ | ❌ | ❌ | Admin only |
-| `/api/v1/students` | `POST` | ✅ | ❌ | ❌ | Admin only |
-| `/api/v1/students` | `GET` | ✅ | ✅ | ❌ | Students restricted to their own record |
-| `/api/v1/students/<id>` | `GET` | ✅ | ✅* | ✅* | `*` Scoped: Faculty must teach course; Student must own ID |
-| `/api/v1/analytics/student/<id>` | `GET` | ✅ | ✅* | ✅* | `*` IDOR Protection: Students blocked from viewing others |
-| `/api/v1/analytics/student/me` | `GET` | ❌ | ❌ | ✅ | Automatically resolves student ID from session |
-| `/api/v1/analytics/faculty` | `GET` | ✅ | ✅ | ❌ | Shows courses assigned to faculty member |
-| `/api/v1/analytics/overview` | `GET` | ✅ | ❌ | ❌ | System-wide statistics |
-| `/api/v1/reports/academic` | `GET` | ✅ | ✅* | ✅* | Supports `?format=json\|csv\|pdf` with IDOR check |
-| `/api/v1/reports/marks` | `GET` | ✅ | ✅* | ✅* | Supports `?format=json\|csv\|pdf` scoped by role |
-| `/api/v1/reports/attendance` | `GET` | ✅ | ✅* | ✅* | Supports `?format=json\|csv\|pdf` scoped by role |
-| `/api/v1/reports/subject/<id>` | `GET` | ✅ | ✅* | ❌ | `*` Faculty must be assigned to subject |
-| `/api/v1/reports/semester/<id>`| `GET` | ✅ | ✅ | ❌ | Faculty/Admin term statistics |
+The system includes pre-seeded administrative and academic accounts:
 
----
-
-## 6. Pre-Configured Accounts
-
-The V2 migration script initializes three pre-seeded accounts:
-
-| Role | Username | Password | Linked Entity / Permissions |
+| Role | Username / Email | Password | Linked Entity / Permissions |
 | :--- | :--- | :--- | :--- |
-| **Admin** | `admin` | `Admin@123` | Complete administrative access across all modules |
-| **Faculty** | `faculty_turing` | `Faculty@123` | Linked to Faculty ID 1 (Assigned to Subject ID 1) |
-| **Student** | `student_25291a6601` | `Student@123` | Linked to Student `25291A6601` (Bijjam Charan Kumar Reddy) |
+| **Admin** | `charan` (`bijjamcherry@gmail.com`) | `CherRY123@@` | Full administrative access across all modules |
 
 ---
 
-## 7. Setup & Installation
+## 9. Setup & Installation
 
 ### Prerequisites
-- **Python**: Version 3.10 or higher
-- **MySQL Server**: Version 8.0 or higher
+* **Python**: Version 3.10 or higher
+* **MySQL Server**: Version 8.0 or higher
 
 ### Steps
 
@@ -282,130 +347,111 @@ The V2 migration script initializes three pre-seeded accounts:
 
 ---
 
-## 8. Database Initialization & Migration
+## 10. Database Initialization & Migration
 
-- **Apply V2 Additive Migration (Preserves all existing V1 data)**:
+* **Apply V2 Migration (Preserves All Existing Data)**:
   ```powershell
   python schema/migrate_v2.py
   ```
-  *Creates `faculty`, `users`, and `faculty_subjects` tables and seeds initial users without altering existing records.*
+  *Creates `faculty`, `users`, and `faculty_subjects` tables without altering or deleting existing student records.*
 
-- **Fresh Install / Reset (Optional, drops and recreates schema)**:
+* **Fresh Database Setup (Optional)**:
   ```powershell
   python schema/init_db.py --seed
   ```
 
 ---
 
-## 9. Running the Application
+## 11. Running the Application
 
 ### Development Mode
 ```powershell
 python run.py
 ```
 
-### Production WSGI Mode (Recommended)
+### Production WSGI Mode (Waitress)
 ```powershell
 python -m waitress --port=5000 run:app
 ```
 
-The web dashboard is accessible at:
-- **Interactive Dashboard**: `http://localhost:5000/dashboard`
-- **Universal Registration**: `http://localhost:5000/register`
-- **Sign In Page**: `http://localhost:5000/login`
+### Web Access Endpoints
+* **Interactive Portal**: `http://localhost:5000/dashboard`
+* **Sign In Page**: `http://localhost:5000/login`
+* **Admin User Registration**: `http://localhost:5000/register` *(Requires Admin session)*
 
 ---
 
-## 10. Running the Test Suite
+## 12. Running the Test Suite
 
-All 42 automated unit and integration tests run out-of-the-box using the SQLite in-memory adapter without requiring an active external MySQL server:
+All 43 unit, integration, and security tests execute using the automated in-memory test runner:
 
 ```powershell
 python -m pytest -v
 ```
 
-**Test Coverage Highlights**:
-- Role-based authorization & IDOR defense (`test_v2_rbac_and_idor_protection`)
-- Student analytics calculation engine (`test_v2_analytics_calculations`)
-- Multi-format reports export in JSON, CSV, and PDF (`test_v2_multi_format_reports`)
-- Public user registration & re-login across all roles (`test_v2_public_registration_and_login`)
-- Atomic transaction rollbacks on failure (`test_batch_attendance_transaction_rollback`, `test_batch_record_marks_transaction_rollback`)
+```text
+============================= test session starts =============================
+platform win32 -- Python 3.14.7, pytest-9.1.1, pluggy-1.6.0
+rootdir: C:\Users\bijja\student_web\student_system
+collected 43 items
+
+tests\test_api_common.py .....                                           [ 11%]
+tests\test_attendance.py ...                                             [ 18%]
+tests\test_marks.py .....                                                [ 30%]
+tests\test_reports.py ..                                                 [ 34%]
+tests\test_semesters.py ..                                               [ 39%]
+tests\test_students.py .......                                           [ 55%]
+tests\test_subjects.py ...                                               [ 62%]
+tests\test_v2_features.py .....                                          [ 74%]
+tests\test_validators.py ...........                                     [100%]
+
+============================= 43 passed in 1.81s ==============================
+```
 
 ---
 
-## 11. V2 API Documentation
+## 13. V2 API Documentation
 
-### Authentication (`/api/v1/auth`)
+### Authentication & Users (`/api/v1/auth`)
 
-| Endpoint | Method | Payload / Params | Description |
-|---|---|---|---|
-| `/api/v1/auth/signup` | `POST` | `username`, `email`, `password`, `role`, `first_name`, `last_name`, optional `roll_number`/`faculty_code` | Public user registration for all roles. Automatically provisions profiles and logs user in. |
-| `/api/v1/auth/login` | `POST` | `username`, `password` | Authenticates credentials and returns a signed bearer token + session cookie. |
-| `/api/v1/auth/logout` | `POST` | None | Clears the authenticated session. |
-| `/api/v1/auth/me` | `GET` | None | Returns the currently authenticated user's profile and roles. |
-| `/api/v1/auth/register` | `POST` | `username`, `email`, `password`, `role` | Administrator-only account creation endpoint. |
-
----
+| Endpoint | Method | Authorization | Description |
+| :--- | :---: | :---: | :--- |
+| `/api/v1/auth/login` | `POST` | Public | Authenticates username/email and password; sets session cookie and returns token. |
+| `/api/v1/auth/logout` | `POST` | Authenticated | Clears server-side session and authenticated cookies. |
+| `/api/v1/auth/me` | `GET` | Authenticated | Retrieves current authenticated profile, role, and linked identifiers. |
+| `/api/v1/auth/register` | `POST` | **Admin Only** | Creates a new Student, Faculty, or Admin account. Auto-provisions linked profile. |
+| `/api/v1/auth/users` | `GET` | **Admin Only** | Lists all registered accounts with role filters and pagination. |
 
 ### Analytics (`/api/v1/analytics`)
 
-| Endpoint | Method | Query / Path Params | Description |
-|---|---|---|---|
-| `/api/v1/analytics/student/<id>` | `GET` | `student_id` | Student performance analytics (IDOR protected: Admin, Faculty teaching student, or Student self). |
-| `/api/v1/analytics/student/me` | `GET` | None | Resolves student ID from session and returns self analytics. |
-| `/api/v1/analytics/faculty` | `GET` | None | Analytical performance summary across all courses assigned to the logged-in faculty member. |
-| `/api/v1/analytics/overview` | `GET` | None | Administrative overview: total students, faculty, courses, department distributions, low-attendance alerts. |
-
----
+| Endpoint | Method | Authorization | Description |
+| :--- | :---: | :---: | :--- |
+| `/api/v1/analytics/student/<id>` | `GET` | Admin / Scoped Faculty / Self | Student performance analytics (JNTUH SGPA, CGPA, grades, trends). |
+| `/api/v1/analytics/student/me` | `GET` | Student | Resolves student ID from session and returns self analytics. |
+| `/api/v1/analytics/faculty` | `GET` | Faculty / Admin | Course averages, pass rates, and enrollments across assigned classes. |
+| `/api/v1/analytics/overview` | `GET` | Admin | Institutional overview: active students, faculty, subjects, and alerts. |
 
 ### Reports (`/api/v1/reports`)
 
 All report endpoints support `?format=json` (default), `?format=csv`, and `?format=pdf`.
 
 | Endpoint | Method | Parameters | Description |
-|---|---|---|---|
-| `/api/v1/reports/academic` | `GET` | `student_id`, `format` | Complete academic transcript with GPA, course credits, and graded evaluations. |
-| `/api/v1/reports/marks` | `GET` | `subject_id`, `semester_id`, `student_id`, `format` | Assessment marks registry with obtained/max points, percentages, and letter grades. |
-| `/api/v1/reports/attendance` | `GET` | `subject_id`, `student_id`, `date_from`, `date_to`, `format` | Detailed attendance logs with present, absent, late, and excused records. |
-| `/api/v1/reports/subject/<id>` | `GET` | `subject_id`, `format` | Course class performance report: class average %, pass rate %, enrolled count, score range. |
-| `/api/v1/reports/semester/<id>`| `GET` | `semester_id`, `format` | Semester term report: enrolled course listings, departments, and term average %. |
-| `/api/v1/reports/attendance/low`| `GET` | `threshold` (default 75) | Identifies all students falling below the minimum attendance threshold. |
+| :--- | :---: | :---: | :--- |
+| `/api/v1/reports/academic` | `GET` | `student_id`, `format` | Complete academic transcript with JNTUH SGPA, credits, and grades. |
+| `/api/v1/reports/marks` | `GET` | `subject_id`, `semester_id`, `student_id`, `format` | Marks registry with scores, letter grades, and percentages. |
+| `/api/v1/reports/attendance` | `GET` | `subject_id`, `student_id`, `date_from`, `date_to`, `format` | Attendance registry with present/absent logs. |
+| `/api/v1/reports/subject/<id>` | `GET` | `subject_id`, `format` | Class performance report: course average %, pass rate %, distribution. |
+| `/api/v1/reports/semester/<id>`| `GET` | `semester_id`, `format` | Semester term report: enrolled subjects and department breakdowns. |
+| `/api/v1/reports/attendance/low`| `GET` | `threshold` (default 75) | Identifies students whose attendance rate falls below threshold. |
 
 ---
 
-## 12. Analytics & Mathematical Engine
+## 14. Report Export Center
 
-Analytics calculations are dynamically evaluated from live database records:
-
-1. **Subject Average Percentage**:
-   $$\text{Subject } \% = \frac{\sum \text{marks\_obtained}}{\sum \text{max\_marks}} \times 100$$
-
-2. **Overall Average Percentage**:
-   $$\text{Overall } \% = \frac{\sum_{\text{all exams}} \text{marks\_obtained}}{\sum_{\text{all exams}} \text{max\_marks}} \times 100$$
-
-3. **Cumulative Grade Point Average (CGPA)**:
-   $$\text{CGPA} = \frac{\sum (\text{Grade Points}_i \times \text{Credits}_i)}{\sum \text{Credits}_i}$$
-
-4. **Attendance Rate**:
-   $$\text{Attendance } \% = \frac{\text{Present} + \text{Excused}}{\text{Total Sessions Logged}} \times 100$$
-
-5. **Subject Comparison**:
-   Sorts all enrolled subjects by percentage to identify the student's highest-performing course and the subject requiring focus.
-
----
-
-## 13. Report Export Formats
-
-- **Web JSON (`?format=json`)**: Standardized REST envelope (`success`, `message`, `data`, `meta`).
-- **RFC 4180 CSV (`?format=csv`)**: Streams a `.csv` download with `Content-Type: text/csv` and `Content-Disposition: attachment; filename="..."`.
-- **Vector PDF (`?format=pdf`)**: Programmatically built via `reportlab` utilizing:
-  - Header styling with university/institution title.
-  - Metadata definition lists (student roll, term, dates, user role).
-  - Auto-wrapped tabular data with alternating row fills and letter grade badges.
-  - Dynamic multi-page footer counters (`Page X of Y`).
-
----
-
-## License & Support
-
-This project is licensed for educational and administrative management purposes. Built with Python 3.10+, Flask 3.1, MySQL 8.0, and ReportLab.
+- **Web JSON (`?format=json`)**: Standardized API response format (`success`, `message`, `data`).
+- **RFC 4180 CSV (`?format=csv`)**: Formatted comma-separated file download for spreadsheet analysis.
+- **Vector PDF (`?format=pdf`)**: Programmatically generated using `ReportLab`:
+  - University/Institution header banner.
+  - Student metadata definition cards (Roll Number, Name, Status, CGPA).
+  - Clean data tables with alternating row fills and letter grade badges.
+  - Multi-page dynamic footers with page counters (`Page X of Y`).
