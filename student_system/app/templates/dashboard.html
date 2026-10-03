@@ -277,10 +277,11 @@
               <th>Department</th>
               <th>Designation</th>
               <th>Assigned Courses</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="facultyTableBody">
-            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading faculty...</td></tr>
+            <tr><td colspan="7" style="text-align:center; padding: 24px;">Loading faculty...</td></tr>
           </tbody>
         </table>
       </div>
@@ -303,10 +304,11 @@
               <th>Department</th>
               <th>Credits</th>
               <th>Semester</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="subjectsTableBody">
-            <tr><td colspan="5" style="text-align:center; padding: 24px;">Loading subjects...</td></tr>
+            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading subjects...</td></tr>
           </tbody>
         </table>
       </div>
@@ -327,10 +329,11 @@
               <th>Term Number</th>
               <th>Dates</th>
               <th>Status</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="semestersTableBody">
-            <tr><td colspan="5" style="text-align:center; padding: 24px;">Loading semesters...</td></tr>
+            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading semesters...</td></tr>
           </tbody>
         </table>
       </div>
@@ -353,10 +356,11 @@
               <th>Marks</th>
               <th>Percentage</th>
               <th>Grade</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="marksTableBody">
-            <tr><td colspan="7" style="text-align:center; padding: 24px;">Loading marks...</td></tr>
+            <tr><td colspan="8" style="text-align:center; padding: 24px;">Loading marks...</td></tr>
           </tbody>
         </table>
       </div>
@@ -385,10 +389,11 @@
               <th>Date</th>
               <th>Status</th>
               <th>Remarks</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="attendanceTableBody">
-            <tr><td colspan="5" style="text-align:center; padding: 24px;">Loading attendance...</td></tr>
+            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading attendance...</td></tr>
           </tbody>
         </table>
       </div>
@@ -419,10 +424,11 @@
               <th>Linked Account</th>
               <th>Status</th>
               <th>Created</th>
+              <th>Actions</th>
             </tr>
           </thead>
           <tbody id="usersTableBody">
-            <tr><td colspan="7" style="text-align:center; padding: 24px;">Loading users...</td></tr>
+            <tr><td colspan="8" style="text-align:center; padding: 24px;">Loading users...</td></tr>
           </tbody>
         </table>
       </div>
@@ -633,11 +639,17 @@
       <button class="close-btn" onclick="document.getElementById('addSubjectDialog').close()">✕</button>
     </div>
     <form onsubmit="submitSubject(event)">
-      <div class="form-group"><label>Subject Code *</label><input type="text" name="subject_code" required></div>
-      <div class="form-group"><label>Course Name *</label><input type="text" name="name" required></div>
+      <div class="form-group"><label>Subject Code *</label><input type="text" name="subject_code" placeholder="e.g. CS103ES" required></div>
+      <div class="form-group"><label>Course Name *</label><input type="text" name="name" placeholder="e.g. Programming for Problem Solving" required></div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-        <div class="form-group"><label>Department *</label><input type="text" name="department" required></div>
+        <div class="form-group"><label>Department *</label><input type="text" name="department" placeholder="e.g. Computer Science" required></div>
         <div class="form-group"><label>Credits *</label><input type="number" step="0.5" name="credits" value="3.0" min="0.5" required></div>
+      </div>
+      <div class="form-group">
+        <label>Academic Semester</label>
+        <select name="semester_id" id="addSubjectSemesterSelect">
+          <option value="">-- General / No Semester Assigned --</option>
+        </select>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="document.getElementById('addSubjectDialog').close()">Cancel</button>
@@ -717,6 +729,253 @@
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="document.getElementById('addAttendanceDialog').close()">Cancel</button>
         <button type="submit" class="btn">Log Attendance</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Confirmation Dialog for Deletions -->
+  <dialog id="deleteConfirmDialog" style="max-width: 480px;">
+    <div class="dialog-header">
+      <h3 id="deleteConfirmTitle">Confirm Deletion</h3>
+      <button class="close-btn" onclick="document.getElementById('deleteConfirmDialog').close()">✕</button>
+    </div>
+    <div style="margin-bottom: 14px;">
+      <p id="deleteConfirmMessage" style="font-size:0.95rem; color:#334155; line-height:1.5;">Are you sure you want to delete this record?</p>
+    </div>
+    <div style="background:#fee2e2; border-left:4px solid var(--danger); padding:10px 14px; border-radius:4px; font-size:0.85rem; color:#991b1b; margin-bottom:18px;">
+      ⚠️ <strong>Safety Check:</strong> Deletion will be safely blocked by the system if foreign-key dependencies (e.g. academic marks, enrollments, or instructor assignments) exist.
+    </div>
+    <div class="form-actions">
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('deleteConfirmDialog').close()">Cancel</button>
+      <button type="button" id="deleteConfirmActionBtn" class="btn btn-danger" onclick="executeConfirmedDelete()">Confirm Delete</button>
+    </div>
+  </dialog>
+
+  <!-- Edit Student Dialog -->
+  <dialog id="editStudentDialog" style="max-width: 540px;">
+    <div class="dialog-header">
+      <h3>Edit Student Record</h3>
+      <button class="close-btn" onclick="document.getElementById('editStudentDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitEditStudent(event)">
+      <input type="hidden" id="editStudentId" name="student_id">
+      <div class="form-group">
+        <label>Roll Number *</label>
+        <input type="text" id="editStudentRoll" name="roll_number" required>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>First Name *</label><input type="text" id="editStudentFirstName" name="first_name" required></div>
+        <div class="form-group"><label>Last Name *</label><input type="text" id="editStudentLastName" name="last_name" required></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Email *</label><input type="email" id="editStudentEmail" name="email" required></div>
+        <div class="form-group"><label>Phone</label><input type="text" id="editStudentPhone" name="phone"></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Date of Birth *</label><input type="date" id="editStudentDob" name="date_of_birth" required></div>
+        <div class="form-group">
+          <label>Gender *</label>
+          <select id="editStudentGender" name="gender" required>
+            <option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Status *</label>
+          <select id="editStudentStatus" name="status" required>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+            <option value="Suspended">Suspended</option>
+            <option value="Graduated">Graduated</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Current Semester</label>
+          <select id="editStudentSemester" name="current_semester_id"></select>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editStudentDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Update Student</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit Faculty Dialog -->
+  <dialog id="editFacultyDialog" style="max-width: 520px;">
+    <div class="dialog-header">
+      <h3>Edit Faculty Profile</h3>
+      <button class="close-btn" onclick="document.getElementById('editFacultyDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitEditFaculty(event)">
+      <input type="hidden" id="editFacultyId" name="faculty_id">
+      <div class="form-group">
+        <label>Faculty Code *</label>
+        <input type="text" id="editFacultyCode" name="faculty_code" required>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>First Name *</label><input type="text" id="editFacultyFirstName" name="first_name" required></div>
+        <div class="form-group"><label>Last Name *</label><input type="text" id="editFacultyLastName" name="last_name" required></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Email *</label><input type="email" id="editFacultyEmail" name="email" required></div>
+        <div class="form-group"><label>Phone</label><input type="text" id="editFacultyPhone" name="phone"></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Department *</label><input type="text" id="editFacultyDept" name="department" required></div>
+        <div class="form-group"><label>Designation *</label><input type="text" id="editFacultyDesig" name="designation" required></div>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editFacultyDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Update Faculty</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit Subject Dialog -->
+  <dialog id="editSubjectDialog" style="max-width: 500px;">
+    <div class="dialog-header">
+      <h3>Edit Subject Course</h3>
+      <button class="close-btn" onclick="document.getElementById('editSubjectDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitEditSubject(event)">
+      <input type="hidden" id="editSubjectId" name="subject_id">
+      <div class="form-group"><label>Subject Code *</label><input type="text" id="editSubjectCode" name="subject_code" required></div>
+      <div class="form-group"><label>Course Name *</label><input type="text" id="editSubjectName" name="name" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Department *</label><input type="text" id="editSubjectDept" name="department" required></div>
+        <div class="form-group"><label>Credits *</label><input type="number" step="0.5" id="editSubjectCredits" name="credits" min="0.5" max="12" required></div>
+      </div>
+      <div class="form-group"><label>Semester</label><select id="editSubjectSemester" name="semester_id"></select></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editSubjectDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Update Subject</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit Semester Dialog -->
+  <dialog id="editSemesterDialog" style="max-width: 500px;">
+    <div class="dialog-header">
+      <h3>Edit Academic Semester</h3>
+      <button class="close-btn" onclick="document.getElementById('editSemesterDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitEditSemester(event)">
+      <input type="hidden" id="editSemesterId" name="semester_id">
+      <div class="form-group"><label>Semester Name *</label><input type="text" id="editSemesterName" name="name" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Semester Number *</label><input type="number" id="editSemesterNumber" name="semester_number" min="1" max="12" required></div>
+        <div class="form-group"><label>Academic Year *</label><input type="text" id="editSemesterYear" name="academic_year" required></div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Start Date *</label><input type="date" id="editSemesterStart" name="start_date" required></div>
+        <div class="form-group"><label>End Date *</label><input type="date" id="editSemesterEnd" name="end_date" required></div>
+      </div>
+      <div class="form-group">
+        <label>Active Term</label>
+        <select id="editSemesterActive" name="is_active">
+          <option value="1">Active</option>
+          <option value="0">Archived / Inactive</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editSemesterDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Update Semester</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit Mark Dialog -->
+  <dialog id="editMarkDialog" style="max-width: 500px;">
+    <div class="dialog-header">
+      <h3>Edit Assessment Mark</h3>
+      <button class="close-btn" onclick="document.getElementById('editMarkDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitEditMark(event)">
+      <input type="hidden" id="editMarkId" name="mark_id">
+      <div id="editMarkDetailsSummary" style="background:#f1f5f9; padding:10px 14px; border-radius:6px; font-size:0.85rem; margin-bottom:14px;"></div>
+      <div class="form-group">
+        <label>Exam / Assessment Type *</label>
+        <select id="editMarkExamType" name="exam_type" required>
+          <option value="Quiz">Quiz</option><option value="Assignment">Assignment</option>
+          <option value="Midterm">Midterm</option><option value="Final">Final</option>
+          <option value="Practical">Practical</option>
+        </select>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Marks Obtained *</label><input type="number" step="0.5" id="editMarkObtained" name="marks_obtained" min="0" required></div>
+        <div class="form-group"><label>Max Marks *</label><input type="number" step="0.5" id="editMarkMax" name="max_marks" min="1" required></div>
+      </div>
+      <div class="form-group"><label>Remarks</label><input type="text" id="editMarkRemarks" name="remarks"></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editMarkDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Update Mark</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit Attendance Dialog -->
+  <dialog id="editAttendanceDialog" style="max-width: 500px;">
+    <div class="dialog-header">
+      <h3>Edit Attendance Record</h3>
+      <button class="close-btn" onclick="document.getElementById('editAttendanceDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitEditAttendance(event)">
+      <input type="hidden" id="editAttendanceId" name="attendance_id">
+      <div id="editAttDetailsSummary" style="background:#f1f5f9; padding:10px 14px; border-radius:6px; font-size:0.85rem; margin-bottom:14px;"></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group"><label>Date *</label><input type="date" id="editAttendanceDate" name="date" required></div>
+        <div class="form-group">
+          <label>Status *</label>
+          <select id="editAttendanceStatus" name="status" required>
+            <option value="Present">Present</option><option value="Absent">Absent</option>
+            <option value="Late">Late</option><option value="Excused">Excused</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group"><label>Remarks</label><input type="text" id="editAttendanceRemarks" name="remarks"></div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editAttendanceDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Update Attendance</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit User Account Dialog -->
+  <dialog id="editUserDialog" style="max-width: 500px;">
+    <div class="dialog-header">
+      <h3>Edit User Account</h3>
+      <button class="close-btn" onclick="document.getElementById('editUserDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitEditUser(event)">
+      <input type="hidden" id="editUserId" name="user_id">
+      <div class="form-group"><label>Username *</label><input type="text" id="editUserUsername" name="username" required></div>
+      <div class="form-group"><label>Email Address *</label><input type="email" id="editUserEmail" name="email" required></div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Role *</label>
+          <select id="editUserRole" name="role" required>
+            <option value="Admin">Administrator</option>
+            <option value="Faculty">Faculty</option>
+            <option value="Student">Student</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Account Status *</label>
+          <select id="editUserStatus" name="is_active" required>
+            <option value="1">Active</option>
+            <option value="0">Suspended / Inactive</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Reset Password (optional)</label>
+        <input type="password" id="editUserPassword" name="password" minlength="6" placeholder="Leave blank to keep current password">
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editUserDialog').close()">Cancel</button>
+        <button type="submit" class="btn">Save Account Changes</button>
       </div>
     </form>
   </dialog>
@@ -1050,6 +1309,7 @@
         const semOpts = sem.map(s => `<option value="${s.id}">${s.name} (${s.academic_year})</option>`).join('');
         if (document.getElementById('markSemesterSelect')) document.getElementById('markSemesterSelect').innerHTML = semOpts;
         if (document.getElementById('studentSemSelect')) document.getElementById('studentSemSelect').innerHTML = '<option value="">-- None --</option>' + semOpts;
+        if (document.getElementById('addSubjectSemesterSelect')) document.getElementById('addSubjectSemesterSelect').innerHTML = '<option value="">-- General / No Semester Assigned --</option>' + semOpts;
         if (document.getElementById('exportSemesterSelect')) document.getElementById('exportSemesterSelect').innerHTML = semOpts;
       } catch (e) {
         console.error('Dropdown populate error:', e);
@@ -1066,7 +1326,7 @@
         const res = await authFetch(url);
         const json = await res.json();
         if (!json.success || !json.data.length) {
-          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px;">No user accounts found.</td></tr>';
+          tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px;">No user accounts found.</td></tr>';
           return;
         }
 
@@ -1079,10 +1339,14 @@
             <td>${u.roll_number ? 'Student: ' + u.roll_number : (u.faculty_code ? 'Faculty: ' + u.faculty_code : '<span style="color:var(--text-muted)">None (Admin)</span>')}</td>
             <td><span class="badge ${u.is_active ? 'badge-active' : 'badge-suspended'}">${u.is_active ? 'Active' : 'Inactive'}</span></td>
             <td style="color:var(--text-muted); font-size:0.8rem;">${u.created_at ? u.created_at.substring(0, 10) : 'N/A'}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="openEditUserModal(${u.id})">Edit</button>
+              ${u.id === currentUser.id ? '<span style="color:var(--text-muted); font-size:0.8rem; margin-left:6px;">(Self)</span>' : `<button class="btn btn-danger btn-sm" onclick="confirmDelete('user', ${u.id}, 'User @${u.username}')">Delete</button>`}
+            </td>
           </tr>
         `).join('');
       } catch (err) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color:var(--danger)">Failed to load users.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color:var(--danger)">Failed to load users.</td></tr>';
       }
     }
 
@@ -1172,7 +1436,10 @@
           <td><span class="badge badge-${s.status.toLowerCase()}">${s.status}</span></td>
           <td>
             <a class="btn btn-secondary btn-sm" href="/api/v1/reports/student/${s.id}?format=pdf" target="_blank">PDF</a>
-            ${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="deleteStudent(${s.id})">Delete</button>` : ''}
+            ${isAdmin ? `
+              <button class="btn btn-secondary btn-sm" onclick="openEditStudentModal(${s.id})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDelete('student', ${s.id}, '${s.roll_number} - ${s.first_name} ${s.last_name}')">Delete</button>
+            ` : ''}
           </td>
         </tr>
       `).join('');
@@ -1201,20 +1468,9 @@
         document.getElementById('addStudentDialog').close();
         form.reset();
         loadStudents();
+        populateDropdowns();
       } else {
         showToast(json.error ? json.error.message : 'Error adding student', true);
-      }
-    }
-
-    async function deleteStudent(id) {
-      if (!confirm('Are you sure you want to delete this student record?')) return;
-      const res = await authFetch(`/api/v1/students/${id}`, { method: 'DELETE' });
-      const json = await res.json();
-      if (json.success) {
-        showToast('Student deleted successfully');
-        loadStudents();
-      } else {
-        showToast(json.error ? json.error.message : 'Failed to delete student', true);
       }
     }
 
@@ -1224,9 +1480,10 @@
       const json = await res.json();
       const tbody = document.getElementById('facultyTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No faculty registered.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px;">No faculty registered.</td></tr>';
         return;
       }
+      const isAdmin = currentUser && currentUser.role === 'Admin';
       tbody.innerHTML = json.data.map(f => `
         <tr>
           <td><strong>${f.faculty_code}</strong></td>
@@ -1235,6 +1492,12 @@
           <td>${f.department}</td>
           <td>${f.designation}</td>
           <td><span class="badge badge-active">${(f.assigned_subjects || []).length} Courses</span></td>
+          <td>
+            ${isAdmin ? `
+              <button class="btn btn-secondary btn-sm" onclick="openEditFacultyModal(${f.id})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDelete('faculty', ${f.id}, '${f.faculty_code} - ${f.first_name} ${f.last_name}')">Delete</button>
+            ` : '<span style="color:var(--text-muted)">-</span>'}
+          </td>
         </tr>
       `).join('');
     }
@@ -1273,9 +1536,10 @@
       const json = await res.json();
       const tbody = document.getElementById('subjectsTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px;">No subjects found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No subjects found.</td></tr>';
         return;
       }
+      const isAdmin = currentUser && currentUser.role === 'Admin';
       tbody.innerHTML = json.data.map(s => `
         <tr>
           <td><strong>${s.subject_code}</strong></td>
@@ -1283,6 +1547,12 @@
           <td>${s.department}</td>
           <td>${s.credits} Credits</td>
           <td>${s.semester_name || '<span style="color:var(--text-muted)">General</span>'}</td>
+          <td>
+            ${isAdmin ? `
+              <button class="btn btn-secondary btn-sm" onclick="openEditSubjectModal(${s.id})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDelete('subject', ${s.id}, '${s.subject_code} - ${s.name}')">Delete</button>
+            ` : '<span style="color:var(--text-muted)">-</span>'}
+          </td>
         </tr>
       `).join('');
     }
@@ -1294,7 +1564,8 @@
         subject_code: form.subject_code.value.trim(),
         name: form.name.value.trim(),
         department: form.department.value.trim(),
-        credits: parseFloat(form.credits.value)
+        credits: parseFloat(form.credits.value),
+        semester_id: form.semester_id && form.semester_id.value ? parseInt(form.semester_id.value) : null
       };
       const res = await authFetch('/api/v1/subjects', {
         method: 'POST',
@@ -1307,6 +1578,7 @@
         document.getElementById('addSubjectDialog').close();
         form.reset();
         loadSubjects();
+        populateDropdowns();
       } else {
         showToast(json.error ? json.error.message : 'Failed to add subject', true);
       }
@@ -1318,9 +1590,10 @@
       const json = await res.json();
       const tbody = document.getElementById('semestersTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px;">No semesters configured.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No semesters configured.</td></tr>';
         return;
       }
+      const isAdmin = currentUser && currentUser.role === 'Admin';
       tbody.innerHTML = json.data.map(sem => `
         <tr>
           <td><strong>${sem.name}</strong></td>
@@ -1328,6 +1601,13 @@
           <td>Term ${sem.semester_number}</td>
           <td>${sem.start_date} to ${sem.end_date}</td>
           <td><span class="badge ${sem.is_active ? 'badge-active' : 'badge-inactive'}">${sem.is_active ? 'Active' : 'Archived'}</span></td>
+          <td>
+            ${isAdmin ? `
+              ${!sem.is_active ? `<button class="btn btn-sm btn-secondary" onclick="activateSemester(${sem.id})">Activate</button> ` : ''}
+              <button class="btn btn-secondary btn-sm" onclick="openEditSemesterModal(${sem.id})">Edit</button>
+              <button class="btn btn-danger btn-sm" onclick="confirmDelete('semester', ${sem.id}, '${sem.name} (${sem.academic_year})')">Delete</button>
+            ` : '<span style="color:var(--text-muted)">-</span>'}
+          </td>
         </tr>
       `).join('');
     }
@@ -1354,8 +1634,24 @@
         document.getElementById('addSemesterDialog').close();
         form.reset();
         loadSemesters();
+        populateDropdowns();
       } else {
         showToast(json.error ? json.error.message : 'Failed to add semester', true);
+      }
+    }
+
+    async function activateSemester(id) {
+      try {
+        const res = await authFetch(`/api/v1/semesters/${id}/activate`, { method: 'POST' });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Semester set as active!');
+          loadSemesters();
+        } else {
+          showToast(json.error ? json.error.message : 'Failed to activate semester', true);
+        }
+      } catch (e) {
+        showToast('Network error activating semester', true);
       }
     }
 
@@ -1365,9 +1661,11 @@
       const json = await res.json();
       const tbody = document.getElementById('marksTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px;">No marks recorded.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px;">No marks recorded.</td></tr>';
         return;
       }
+      const isAdmin = currentUser && currentUser.role === 'Admin';
+      const isFaculty = currentUser && currentUser.role === 'Faculty';
       tbody.innerHTML = json.data.map(m => `
         <tr>
           <td><strong>${m.student_roll || m.student_name || '#' + m.student_id}</strong></td>
@@ -1377,6 +1675,11 @@
           <td><strong>${m.marks_obtained}</strong> / ${m.max_marks}</td>
           <td>${m.percentage}%</td>
           <td><strong>${m.grade || '-'}</strong></td>
+          <td>
+            ${(isAdmin || isFaculty) ? `<button class="btn btn-secondary btn-sm" onclick="openEditMarkModal(${m.id})">Edit</button> ` : ''}
+            ${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="confirmDelete('mark', ${m.id}, 'Mark #${m.id} (${m.exam_type})')">Delete</button>` : ''}
+            ${(!isAdmin && !isFaculty) ? '<span style="color:var(--text-muted)">-</span>' : ''}
+          </td>
         </tr>
       `).join('');
     }
@@ -1416,9 +1719,11 @@
       const json = await res.json();
       const tbody = document.getElementById('attendanceTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding: 24px;">No attendance logged.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No attendance logged.</td></tr>';
         return;
       }
+      const isAdmin = currentUser && currentUser.role === 'Admin';
+      const isFaculty = currentUser && currentUser.role === 'Faculty';
       tbody.innerHTML = json.data.map(a => `
         <tr>
           <td><strong>${a.student_roll || a.student_name || '#' + a.student_id}</strong></td>
@@ -1426,6 +1731,11 @@
           <td>${a.date}</td>
           <td><span class="badge badge-${a.status.toLowerCase()}">${a.status}</span></td>
           <td>${a.remarks || '-'}</td>
+          <td>
+            ${(isAdmin || isFaculty) ? `<button class="btn btn-secondary btn-sm" onclick="openEditAttendanceModal(${a.id})">Edit</button> ` : ''}
+            ${isAdmin ? `<button class="btn btn-danger btn-sm" onclick="confirmDelete('attendance', ${a.id}, 'Attendance #${a.id} (${a.date})')">Delete</button>` : ''}
+            ${(!isAdmin && !isFaculty) ? '<span style="color:var(--text-muted)">-</span>' : ''}
+          </td>
         </tr>
       `).join('');
     }
@@ -1437,7 +1747,8 @@
         student_id: parseInt(form.student_id.value),
         subject_id: parseInt(form.subject_id.value),
         date: form.date.value,
-        status: form.status.value
+        status: form.status.value,
+        remarks: form.remarks ? form.remarks.value.trim() : ''
       };
       const res = await authFetch('/api/v1/attendance', {
         method: 'POST',
@@ -1452,6 +1763,455 @@
         loadAttendance();
       } else {
         showToast(json.error ? json.error.message : 'Failed to log attendance', true);
+      }
+    }
+
+    // ==========================================
+    // DELETION CONFIRMATION & EXECUTION (Admin Only)
+    // ==========================================
+    let pendingDelete = { type: null, id: null, label: '' };
+
+    function confirmDelete(type, id, label) {
+      pendingDelete = { type, id, label };
+      document.getElementById('deleteConfirmTitle').textContent = `Delete ${type.charAt(0).toUpperCase() + type.slice(1)}`;
+      document.getElementById('deleteConfirmMessage').innerHTML = `Are you sure you want to delete <strong>${label}</strong>?`;
+      document.getElementById('deleteConfirmDialog').showModal();
+    }
+
+    async function executeConfirmedDelete() {
+      const { type, id, label } = pendingDelete;
+      if (!type || !id) return;
+
+      const endpoints = {
+        student: `/api/v1/students/${id}`,
+        faculty: `/api/v1/faculty/${id}`,
+        subject: `/api/v1/subjects/${id}`,
+        semester: `/api/v1/semesters/${id}`,
+        mark: `/api/v1/marks/${id}`,
+        attendance: `/api/v1/attendance/${id}`,
+        user: `/api/v1/auth/users/${id}`
+      };
+
+      const url = endpoints[type];
+      if (!url) return;
+
+      try {
+        const res = await authFetch(url, { method: 'DELETE' });
+        const json = await res.json();
+        document.getElementById('deleteConfirmDialog').close();
+        if (json.success) {
+          showToast(`${type.charAt(0).toUpperCase() + type.slice(1)} deleted successfully!`);
+          if (type === 'student') { loadStudents(); populateDropdowns(); }
+          else if (type === 'faculty') { loadFaculty(); }
+          else if (type === 'subject') { loadSubjects(); populateDropdowns(); }
+          else if (type === 'semester') { loadSemesters(); populateDropdowns(); }
+          else if (type === 'mark') { loadMarks(); }
+          else if (type === 'attendance') { loadAttendance(); }
+          else if (type === 'user') { loadUsers(); }
+        } else {
+          showToast(json.error ? json.error.message : 'Deletion failed', true);
+        }
+      } catch (err) {
+        document.getElementById('deleteConfirmDialog').close();
+        showToast('Network error during deletion', true);
+      }
+    }
+
+    // ==========================================
+    // EDIT MODAL OPENERS & SUBMIT HANDLERS
+    // ==========================================
+    // 1. Student Edit
+    async function openEditStudentModal(id) {
+      try {
+        const [stuRes, semRes] = await Promise.all([
+          authFetch(`/api/v1/students/${id}`),
+          authFetch('/api/v1/semesters')
+        ]);
+        const stuJson = await stuRes.json();
+        const semJson = await semRes.json();
+        if (!stuJson.success) { showToast(stuJson.error ? stuJson.error.message : 'Error fetching student', true); return; }
+
+        const s = stuJson.data;
+        const sems = semJson.data || [];
+
+        if (document.getElementById('editStudentId')) document.getElementById('editStudentId').value = s.id;
+        if (document.getElementById('editStudentRoll')) document.getElementById('editStudentRoll').value = s.roll_number;
+        if (document.getElementById('editStudentFirstName')) document.getElementById('editStudentFirstName').value = s.first_name;
+        if (document.getElementById('editStudentLastName')) document.getElementById('editStudentLastName').value = s.last_name || '';
+        if (document.getElementById('editStudentEmail')) document.getElementById('editStudentEmail').value = s.email;
+        if (document.getElementById('editStudentPhone')) document.getElementById('editStudentPhone').value = s.phone || '';
+        if (document.getElementById('editStudentDob')) document.getElementById('editStudentDob').value = s.date_of_birth ? s.date_of_birth.substring(0, 10) : '';
+        if (document.getElementById('editStudentGender')) document.getElementById('editStudentGender').value = s.gender || 'Male';
+        if (document.getElementById('editStudentStatus')) document.getElementById('editStudentStatus').value = s.status || 'Active';
+
+        const sel = document.getElementById('editStudentSemester');
+        if (sel) {
+          sel.innerHTML = '<option value="">-- None --</option>' + sems.map(sm => `<option value="${sm.id}" ${sm.id === s.current_semester_id ? 'selected' : ''}>${sm.name} (${sm.academic_year})</option>`).join('');
+        }
+
+        document.getElementById('editStudentDialog').showModal();
+      } catch (err) {
+        console.error('openEditStudentModal error:', err);
+        showToast('Failed to load student details', true);
+      }
+    }
+
+    async function submitEditStudent(e) {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.student_id.value;
+      const data = {
+        roll_number: form.roll_number.value.trim(),
+        first_name: form.first_name.value.trim(),
+        last_name: form.last_name.value.trim(),
+        email: form.email.value.trim(),
+        phone: form.phone ? form.phone.value.trim() : null,
+        date_of_birth: form.date_of_birth.value,
+        gender: form.gender.value,
+        status: form.status.value,
+        current_semester_id: form.current_semester_id.value ? parseInt(form.current_semester_id.value) : null
+      };
+
+      try {
+        const res = await authFetch(`/api/v1/students/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Student updated successfully!');
+          document.getElementById('editStudentDialog').close();
+          loadStudents();
+          populateDropdowns();
+        } else {
+          showToast(json.error ? json.error.message : 'Update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error during student update', true);
+      }
+    }
+
+    // 2. Faculty Edit
+    async function openEditFacultyModal(id) {
+      try {
+        const res = await authFetch(`/api/v1/faculty/${id}`);
+        const json = await res.json();
+        if (!json.success) { showToast(json.error ? json.error.message : 'Error fetching faculty', true); return; }
+        const f = json.data;
+        if (document.getElementById('editFacultyId')) document.getElementById('editFacultyId').value = f.id;
+        if (document.getElementById('editFacultyCode')) document.getElementById('editFacultyCode').value = f.faculty_code;
+        if (document.getElementById('editFacultyFirstName')) document.getElementById('editFacultyFirstName').value = f.first_name;
+        if (document.getElementById('editFacultyLastName')) document.getElementById('editFacultyLastName').value = f.last_name || '';
+        if (document.getElementById('editFacultyEmail')) document.getElementById('editFacultyEmail').value = f.email;
+        if (document.getElementById('editFacultyPhone')) document.getElementById('editFacultyPhone').value = f.phone || '';
+        if (document.getElementById('editFacultyDept')) document.getElementById('editFacultyDept').value = f.department;
+        if (document.getElementById('editFacultyDesig')) document.getElementById('editFacultyDesig').value = f.designation || 'Lecturer';
+        document.getElementById('editFacultyDialog').showModal();
+      } catch (err) {
+        console.error('openEditFacultyModal error:', err);
+        showToast('Failed to load faculty details', true);
+      }
+    }
+
+    async function submitEditFaculty(e) {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.faculty_id.value;
+      const data = {
+        faculty_code: form.faculty_code.value.trim(),
+        first_name: form.first_name.value.trim(),
+        last_name: form.last_name.value.trim(),
+        email: form.email.value.trim(),
+        phone: form.phone ? form.phone.value.trim() : null,
+        department: form.department.value.trim(),
+        designation: form.designation.value.trim()
+      };
+      try {
+        const res = await authFetch(`/api/v1/faculty/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Faculty updated successfully!');
+          document.getElementById('editFacultyDialog').close();
+          loadFaculty();
+        } else {
+          showToast(json.error ? json.error.message : 'Update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error during faculty update', true);
+      }
+    }
+
+    // 3. Subject Edit
+    async function openEditSubjectModal(id) {
+      try {
+        const [subRes, semRes] = await Promise.all([
+          authFetch(`/api/v1/subjects/${id}`),
+          authFetch('/api/v1/semesters')
+        ]);
+        const subJson = await subRes.json();
+        const semJson = await semRes.json();
+        if (!subJson.success) { showToast(subJson.error ? subJson.error.message : 'Error fetching subject', true); return; }
+        const s = subJson.data;
+        const sems = semJson.data || [];
+
+        if (document.getElementById('editSubjectId')) document.getElementById('editSubjectId').value = s.id;
+        if (document.getElementById('editSubjectCode')) document.getElementById('editSubjectCode').value = s.subject_code;
+        if (document.getElementById('editSubjectName')) document.getElementById('editSubjectName').value = s.name;
+        if (document.getElementById('editSubjectDept')) document.getElementById('editSubjectDept').value = s.department;
+        if (document.getElementById('editSubjectCredits')) document.getElementById('editSubjectCredits').value = s.credits;
+
+        const sel = document.getElementById('editSubjectSemester');
+        if (sel) {
+          sel.innerHTML = '<option value="">-- General / Elective --</option>' + sems.map(sm => `<option value="${sm.id}" ${sm.id === s.semester_id ? 'selected' : ''}>${sm.name} (${sm.academic_year})</option>`).join('');
+        }
+
+        document.getElementById('editSubjectDialog').showModal();
+      } catch (err) {
+        console.error('openEditSubjectModal error:', err);
+        showToast('Failed to load subject details', true);
+      }
+    }
+
+    async function submitEditSubject(e) {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.subject_id.value;
+      const data = {
+        subject_code: form.subject_code.value.trim(),
+        name: form.name.value.trim(),
+        department: form.department.value.trim(),
+        credits: parseFloat(form.credits.value),
+        semester_id: form.semester_id && form.semester_id.value ? parseInt(form.semester_id.value) : null
+      };
+      try {
+        const res = await authFetch(`/api/v1/subjects/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Subject updated successfully!');
+          document.getElementById('editSubjectDialog').close();
+          loadSubjects();
+          populateDropdowns();
+        } else {
+          showToast(json.error ? json.error.message : 'Update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error during subject update', true);
+      }
+    }
+
+    // 4. Semester Edit
+    async function openEditSemesterModal(id) {
+      try {
+        const res = await authFetch(`/api/v1/semesters/${id}`);
+        const json = await res.json();
+        if (!json.success) { showToast(json.error ? json.error.message : 'Error fetching semester', true); return; }
+        const sem = json.data;
+        if (document.getElementById('editSemesterId')) document.getElementById('editSemesterId').value = sem.id;
+        if (document.getElementById('editSemesterName')) document.getElementById('editSemesterName').value = sem.name;
+        if (document.getElementById('editSemesterYear')) document.getElementById('editSemesterYear').value = sem.academic_year;
+        if (document.getElementById('editSemesterNumber')) document.getElementById('editSemesterNumber').value = sem.semester_number;
+        if (document.getElementById('editSemesterStart')) document.getElementById('editSemesterStart').value = sem.start_date;
+        if (document.getElementById('editSemesterEnd')) document.getElementById('editSemesterEnd').value = sem.end_date;
+        if (document.getElementById('editSemesterActive')) document.getElementById('editSemesterActive').value = sem.is_active ? '1' : '0';
+        document.getElementById('editSemesterDialog').showModal();
+      } catch (err) {
+        console.error('openEditSemesterModal error:', err);
+        showToast('Failed to load semester details', true);
+      }
+    }
+
+    async function submitEditSemester(e) {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.semester_id.value;
+      const data = {
+        name: form.name.value.trim(),
+        academic_year: form.academic_year.value.trim(),
+        semester_number: parseInt(form.semester_number.value),
+        start_date: form.start_date.value,
+        end_date: form.end_date.value,
+        is_active: form.is_active.value === '1'
+      };
+      try {
+        const res = await authFetch(`/api/v1/semesters/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Semester updated successfully!');
+          document.getElementById('editSemesterDialog').close();
+          loadSemesters();
+          populateDropdowns();
+        } else {
+          showToast(json.error ? json.error.message : 'Update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error during semester update', true);
+      }
+    }
+
+    // 5. Mark Edit
+    async function openEditMarkModal(id) {
+      try {
+        const res = await authFetch(`/api/v1/marks/${id}`);
+        const json = await res.json();
+        if (!json.success) { showToast(json.error ? json.error.message : 'Error fetching mark', true); return; }
+        const m = json.data;
+        if (document.getElementById('editMarkId')) document.getElementById('editMarkId').value = m.id;
+        const summary = document.getElementById('editMarkDetailsSummary');
+        if (summary) {
+          summary.innerHTML = `<strong>Student:</strong> ${m.student_roll || '#' + m.student_id} (${m.student_name || ''})<br><strong>Subject:</strong> ${m.subject_code ? m.subject_code + ' - ' + m.subject_name : '#' + m.subject_id}<br><strong>Semester:</strong> ${m.semester_name || '#' + m.semester_id}`;
+        }
+        if (document.getElementById('editMarkExamType')) document.getElementById('editMarkExamType').value = m.exam_type;
+        if (document.getElementById('editMarkObtained')) document.getElementById('editMarkObtained').value = m.marks_obtained;
+        if (document.getElementById('editMarkMax')) document.getElementById('editMarkMax').value = m.max_marks;
+        if (document.getElementById('editMarkRemarks')) document.getElementById('editMarkRemarks').value = m.remarks || '';
+        document.getElementById('editMarkDialog').showModal();
+      } catch (err) {
+        console.error('openEditMarkModal error:', err);
+        showToast('Failed to load mark details', true);
+      }
+    }
+
+    async function submitEditMark(e) {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.mark_id.value;
+      const data = {
+        exam_type: form.exam_type.value,
+        marks_obtained: parseFloat(form.marks_obtained.value),
+        max_marks: parseFloat(form.max_marks.value),
+        remarks: form.remarks ? form.remarks.value.trim() : null
+      };
+      try {
+        const res = await authFetch(`/api/v1/marks/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Mark updated successfully!');
+          document.getElementById('editMarkDialog').close();
+          loadMarks();
+        } else {
+          showToast(json.error ? json.error.message : 'Update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error during mark update', true);
+      }
+    }
+
+    // 6. Attendance Edit
+    async function openEditAttendanceModal(id) {
+      try {
+        const res = await authFetch(`/api/v1/attendance/${id}`);
+        const json = await res.json();
+        if (!json.success) { showToast(json.error ? json.error.message : 'Error fetching attendance', true); return; }
+        const a = json.data;
+        if (document.getElementById('editAttendanceId')) document.getElementById('editAttendanceId').value = a.id;
+        const summary = document.getElementById('editAttDetailsSummary');
+        if (summary) {
+          summary.innerHTML = `<strong>Student:</strong> ${a.student_roll || '#' + a.student_id} (${a.student_name || ''})<br><strong>Subject:</strong> ${a.subject_code ? a.subject_code + ' - ' + a.subject_name : '#' + a.subject_id}`;
+        }
+        if (document.getElementById('editAttendanceDate')) document.getElementById('editAttendanceDate').value = a.date ? a.date.substring(0, 10) : '';
+        if (document.getElementById('editAttendanceStatus')) document.getElementById('editAttendanceStatus').value = a.status;
+        if (document.getElementById('editAttendanceRemarks')) document.getElementById('editAttendanceRemarks').value = a.remarks || '';
+        document.getElementById('editAttendanceDialog').showModal();
+      } catch (err) {
+        console.error('openEditAttendanceModal error:', err);
+        showToast('Failed to load attendance details', true);
+      }
+    }
+
+    async function submitEditAttendance(e) {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.attendance_id.value;
+      const data = {
+        date: form.date.value,
+        status: form.status.value,
+        remarks: form.remarks ? form.remarks.value.trim() : null
+      };
+      try {
+        const res = await authFetch(`/api/v1/attendance/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Attendance record updated successfully!');
+          document.getElementById('editAttendanceDialog').close();
+          loadAttendance();
+        } else {
+          showToast(json.error ? json.error.message : 'Update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error during attendance update', true);
+      }
+    }
+
+    // 7. User Edit
+    async function openEditUserModal(id) {
+      try {
+        const res = await authFetch(`/api/v1/auth/users/${id}`);
+        const json = await res.json();
+        if (!json.success) { showToast(json.error ? json.error.message : 'Error fetching user', true); return; }
+        const u = json.data;
+        if (document.getElementById('editUserId')) document.getElementById('editUserId').value = u.id;
+        if (document.getElementById('editUserUsername')) document.getElementById('editUserUsername').value = u.username;
+        if (document.getElementById('editUserEmail')) document.getElementById('editUserEmail').value = u.email;
+        if (document.getElementById('editUserRole')) document.getElementById('editUserRole').value = u.role;
+        if (document.getElementById('editUserStatus')) document.getElementById('editUserStatus').value = u.is_active ? '1' : '0';
+        if (document.getElementById('editUserPassword')) document.getElementById('editUserPassword').value = '';
+        document.getElementById('editUserDialog').showModal();
+      } catch (err) {
+        console.error('openEditUserModal error:', err);
+        showToast('Failed to load user account details', true);
+      }
+    }
+
+    async function submitEditUser(e) {
+      e.preventDefault();
+      const form = e.target;
+      const id = form.user_id.value;
+      const data = {
+        username: form.username.value.trim(),
+        email: form.email.value.trim(),
+        role: form.role.value,
+        is_active: form.is_active.value === '1'
+      };
+      if (form.password.value.trim()) {
+        data.password = form.password.value.trim();
+      }
+      try {
+        const res = await authFetch(`/api/v1/auth/users/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('User account updated successfully!');
+          document.getElementById('editUserDialog').close();
+          loadUsers();
+        } else {
+          showToast(json.error ? json.error.message : 'Update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error during user update', true);
       }
     }
 

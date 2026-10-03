@@ -66,3 +66,35 @@ def list_users():
     offset = int(request.args.get("offset", 0))
     users = AuthService.list_users(role=role, limit=limit, offset=offset)
     return api_response(data=users, message="Users retrieved successfully.")
+
+
+@auth_bp.route("/users/<int:user_id>", methods=["GET"])
+@roles_required("Admin")
+def get_user(user_id: int):
+    """Administrator-only retrieve user account by ID."""
+    from app.repositories.user_repo import UserRepository
+    from app.utils.exceptions import NotFoundError
+    user = UserRepository.get_by_id(user_id)
+    if not user:
+        raise NotFoundError(f"User with ID {user_id} not found.")
+    user_clean = {k: v for k, v in user.items() if k != "password_hash"}
+    return api_response(data=user_clean, message="User account retrieved successfully.")
+
+
+@auth_bp.route("/users/<int:user_id>", methods=["PUT", "PATCH"])
+@roles_required("Admin")
+def update_user(user_id: int):
+    """Administrator-only update user account."""
+    current_user = get_current_user()
+    payload = request.get_json(silent=True) or {}
+    updated = AuthService.update_user_account(user_id, payload, current_user=current_user)
+    return api_response(data=updated, message="User account updated successfully.")
+
+
+@auth_bp.route("/users/<int:user_id>", methods=["DELETE"])
+@roles_required("Admin")
+def delete_user(user_id: int):
+    """Administrator-only delete user account."""
+    current_user = get_current_user()
+    AuthService.delete_user_account(user_id, current_user=current_user)
+    return api_response(data={"deleted_id": user_id}, message="User account deleted successfully.")

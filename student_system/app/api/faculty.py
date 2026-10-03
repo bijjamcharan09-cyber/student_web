@@ -103,3 +103,61 @@ def get_assigned_subjects(faculty_id: int):
 
     subjects = FacultyRepository.get_assigned_subjects(faculty_id, semester_id=semester_id)
     return api_response(data=subjects, message="Assigned subjects retrieved successfully.")
+
+
+@faculty_bp.route("/<int:faculty_id>", methods=["PUT", "PATCH"])
+@roles_required("Admin")
+def update_faculty(faculty_id: int):
+    """Update faculty profile (Admin only). Preserves existing course assignments."""
+    existing = FacultyRepository.get_by_id(faculty_id)
+    if not existing:
+        raise NotFoundError(f"Faculty with ID {faculty_id} not found.")
+
+    payload = request.get_json(silent=True) or {}
+    from app.utils.exceptions import ConflictError
+
+    # Unique code check
+    if "faculty_code" in payload and payload["faculty_code"]:
+        new_code = str(payload["faculty_code"]).strip().upper()
+        if new_code != existing["faculty_code"]:
+            other = FacultyRepository.get_by_code(new_code)
+            if other and other["id"] != faculty_id:
+                raise ConflictError(f"Faculty code '{new_code}' is already assigned to another instructor.")
+            payload["faculty_code"] = new_code
+
+    # Unique email check
+    if "email" in payload and payload["email"]:
+        new_email = str(payload["email"]).strip().lower()
+        if new_email != existing["email"]:
+            other = FacultyRepository.get_by_email(new_email)
+            if other and other["id"] != faculty_id:
+                raise ConflictError(f"Email '{new_email}' is already assigned to another instructor.")
+            payload["email"] = new_email
+
+    FacultyRepository.update(faculty_id, payload)
+    updated = FacultyRepository.get_by_id(faculty_id)
+    return api_response(data=updated, message="Faculty profile updated successfully.")
+
+
+@faculty_bp.route("/<int:faculty_id>", methods=["DELETE"])
+@roles_required("Admin")
+def delete_faculty(faculty_id: int):
+    """Delete faculty profile (Admin only). Safely blocks deletion if faculty has assigned courses."""
+    existing = FacultyRepository.get_by_id(faculty_id)
+    if not existing:
+        raise NotFoundError(f"Faculty with ID {faculty_id} not found.")
+
+    assigned_count = FacultyRepository.count_assigned_subjects(faculty_id)
+    if assigned_count > 0:
+        from app.utils.exceptions import ConflictError
+        raise ConflictError(
+            f"Cannot delete faculty member: Instructor is actively assigned to {assigned_count} course(s). "
+            f"Please unassign course teaching duties first."
+        )
+
+    # Unlink any user accounts linked to this faculty
+    from app import db
+    db.execute_update("UPDATE users SET faculty_id = NULL WHERE faculty_id = %s", (faculty_id,))
+
+    FacultyRepository.delete(faculty_id)
+    return api_response(data={"deleted_id": faculty_id}, message="Faculty profile deleted successfully.")

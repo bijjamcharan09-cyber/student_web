@@ -3,7 +3,10 @@ Attendance API blueprint using standard Flask routes.
 """
 
 from flask import Blueprint, request
+from app.repositories.faculty_repo import FacultyRepository
 from app.services.attendance_service import AttendanceService
+from app.utils.auth import get_current_user, login_required, roles_required
+from app.utils.exceptions import ForbiddenError, NotFoundError
 from app.utils.responses import api_response
 from app.utils.validators import parse_pagination
 
@@ -77,16 +80,36 @@ def get_attendance(attendance_id: int):
 
 
 @attendance_bp.route("/<int:attendance_id>", methods=["PUT", "PATCH"])
+@login_required
 def update_attendance(attendance_id: int):
-    """Update attendance record."""
+    """Update attendance record (Admin or assigned Faculty only)."""
+    user = get_current_user()
+    role = user["role"]
+    if role == "Student":
+        raise ForbiddenError("Students cannot modify attendance records.")
+
+    existing = AttendanceService.get_attendance(attendance_id)
+    if not existing:
+        raise NotFoundError(f"Attendance record with ID {attendance_id} not found.")
+
+    if role == "Faculty":
+        faculty_id = user.get("faculty_id")
+        if not faculty_id or not FacultyRepository.is_faculty_assigned_to_subject(faculty_id, existing["subject_id"]):
+            raise ForbiddenError("You are not authorized to modify attendance for this course.")
+
     payload = request.get_json(silent=True) or {}
     updated = AttendanceService.update_attendance(attendance_id, payload)
     return api_response(data=updated, message="Attendance record updated successfully")
 
 
 @attendance_bp.route("/<int:attendance_id>", methods=["DELETE"])
+@roles_required("Admin")
 def delete_attendance(attendance_id: int):
-    """Delete attendance record."""
+    """Delete attendance record (Admin only)."""
+    existing = AttendanceService.get_attendance(attendance_id)
+    if not existing:
+        raise NotFoundError(f"Attendance record with ID {attendance_id} not found.")
+
     AttendanceService.delete_attendance(attendance_id)
     return api_response(data={"deleted_id": attendance_id}, message="Attendance record deleted successfully")
 

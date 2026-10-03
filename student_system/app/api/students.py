@@ -4,6 +4,7 @@ Students API blueprint using standard Flask routes.
 
 from flask import Blueprint, request
 from app.services.student_service import StudentService
+from app.utils.auth import login_required, roles_required
 from app.utils.responses import api_response
 from app.utils.validators import parse_pagination
 
@@ -50,16 +51,18 @@ def get_student(student_id: int):
 
 
 @students_bp.route("/<int:student_id>", methods=["PUT", "PATCH"])
+@roles_required("Admin")
 def update_student(student_id: int):
-    """Update student profile."""
+    """Update student profile (Admin only)."""
     payload = request.get_json(silent=True) or {}
     updated = StudentService.update_student(student_id, payload)
     return api_response(data=updated, message="Student updated successfully")
 
 
 @students_bp.route("/<int:student_id>", methods=["DELETE"])
+@roles_required("Admin")
 def delete_student(student_id: int):
-    """Delete a student profile."""
+    """Delete a student profile (Admin only)."""
     StudentService.delete_student(student_id)
     return api_response(data={"deleted_id": student_id}, message="Student deleted successfully")
 

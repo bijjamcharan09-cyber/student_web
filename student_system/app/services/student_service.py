@@ -84,6 +84,28 @@ class StudentService:
         if not existing:
             raise NotFoundError(f"Student with ID {student_id} not found.")
 
+        from app import db
+        # Check if student has marks or attendance records
+        m_count = db.query_one("SELECT COUNT(*) as c FROM marks WHERE student_id = %s", (student_id,))
+        marks_count = m_count["c"] if m_count else 0
+
+        a_count = db.query_one("SELECT COUNT(*) as c FROM attendance WHERE student_id = %s", (student_id,))
+        att_count = a_count["c"] if a_count else 0
+
+        if marks_count > 0 or att_count > 0:
+            reasons = []
+            if marks_count:
+                reasons.append(f"{marks_count} academic mark(s)")
+            if att_count:
+                reasons.append(f"{att_count} attendance record(s)")
+            raise ConflictError(
+                f"Cannot delete student: Student has existing academic records ({', '.join(reasons)}). "
+                f"Please archive or resolve academic evaluations before deleting."
+            )
+
+        # Unlink any user accounts linked to this student
+        db.execute_update("UPDATE users SET student_id = NULL WHERE student_id = %s", (student_id,))
+
         StudentRepository.delete(student_id)
         return True
 

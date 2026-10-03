@@ -3,6 +3,7 @@ Reports API blueprint providing JSON viewing, CSV export, and PDF generation wit
 """
 
 from datetime import datetime
+from typing import Optional
 from flask import Blueprint, request
 from app import db
 from app.repositories.faculty_repo import FacultyRepository
@@ -11,7 +12,11 @@ from app.repositories.semester_repo import SemesterRepository
 from app.repositories.student_repo import StudentRepository
 from app.repositories.subject_repo import SubjectRepository
 from app.services.mark_service import enrich_mark
-from app.services.report_generator import export_csv_response, export_pdf_response
+from app.services.report_generator import (
+    export_csv_response,
+    export_pdf_response,
+    export_transcript_pdf_response,
+)
 from app.services.report_service import ReportService
 from app.utils.auth import (
     check_student_scope,
@@ -52,63 +57,73 @@ def get_student_academic_report(student_id: Optional[int] = None):
 
     student_meta = transcript["student"]
     summary_meta = transcript["academic_summary"]
+    cgpa_val = transcript.get("cgpa", summary_meta.get("cumulative_gpa", 0.0))
 
     if fmt == "csv":
-        headers = ["Semester", "Subject Code", "Subject Name", "Credits", "Assessment", "Score", "Max Marks", "Percentage", "Grade"]
+        headers = [
+            "Semester",
+            "Subject Code",
+            "Subject Name",
+            "Credits",
+            "Assessment",
+            "Score",
+            "Max Marks",
+            "Percentage",
+            "Grade",
+            "Grade Point",
+            "SGPA",
+            "CGPA",
+        ]
         rows = []
         for sem in transcript.get("semesters", []):
-            sem_name = sem["semester_name"]
+            sem_name = sem.get("semester_name") or sem.get("semester", "")
+            sem_sgpa = sem.get("sgpa", sem.get("semester_gpa", 0.0))
             for sub in sem.get("subjects", []):
-                sub_code = sub["subject_code"]
-                sub_name = sub["subject_name"]
-                credits = sub["credits"]
-                for ass in sub.get("assessments", []):
+                sub_code = sub.get("subject_code") or sub.get("code", "")
+                sub_name = sub.get("subject_name") or sub.get("name", "")
+                credits = sub.get("credits", 0.0)
+                sub_grade = sub.get("grade") or sub.get("overall_grade", "")
+                sub_grade_point = sub.get("grade_point", 0.0)
+
+                assessments = sub.get("assessments", [])
+                if assessments:
+                    for ass in assessments:
+                        rows.append([
+                            sem_name,
+                            sub_code,
+                            sub_name,
+                            credits,
+                            ass.get("exam_type", "Assessment"),
+                            ass.get("marks_obtained", 0),
+                            ass.get("max_marks", 0),
+                            f"{ass.get('percentage', 0)}%",
+                            ass.get("grade", sub_grade),
+                            ass.get("grade_point", sub_grade_point),
+                            sem_sgpa,
+                            cgpa_val,
+                        ])
+                else:
                     rows.append([
                         sem_name,
                         sub_code,
                         sub_name,
                         credits,
-                        ass["exam_type"],
-                        ass["marks_obtained"],
-                        ass["max_marks"],
-                        f"{ass['percentage']}%",
-                        ass["grade"],
+                        "Final",
+                        sub.get("total_obtained", 0),
+                        sub.get("total_max", 0),
+                        f"{sub.get('overall_percentage', 0)}%",
+                        sub_grade,
+                        sub_grade_point,
+                        sem_sgpa,
+                        cgpa_val,
                     ])
+
         filename = f"academic_report_{student_meta['roll_number']}_{datetime.now().strftime('%Y%m%d')}"
         return export_csv_response(filename, headers, rows)
 
     elif fmt == "pdf":
-        headers = ["Semester", "Subject", "Credits", "Assessment", "Score", "Grade"]
-        rows = []
-        for sem in transcript.get("semesters", []):
-            for sub in sem.get("subjects", []):
-                for ass in sub.get("assessments", []):
-                    rows.append([
-                        sem["semester_name"],
-                        f"{sub['subject_code']} - {sub['subject_name']}",
-                        str(sub["credits"]),
-                        ass["exam_type"],
-                        f"{ass['marks_obtained']}/{ass['max_marks']} ({ass['percentage']}%)",
-                        ass["grade"],
-                    ])
-        meta_pairs = [
-            ("Student Name", student_meta["name"]),
-            ("Roll Number", student_meta["roll_number"]),
-            ("Email", student_meta["email"]),
-            ("Status", student_meta["status"]),
-            ("Cumulative GPA (CGPA)", str(summary_meta["cumulative_gpa"])),
-            ("Total Credits Earned", str(summary_meta["total_credits_earned"])),
-            ("Attendance Rate", f"{transcript['attendance']['attendance_percentage']}%"),
-        ]
         filename = f"transcript_{student_meta['roll_number']}"
-        return export_pdf_response(
-            filename=filename,
-            title="Official Student Academic Transcript",
-            subtitle=f"Generated on {datetime.now().strftime('%B %d, %Y')}",
-            headers=headers,
-            rows=rows,
-            meta_pairs=meta_pairs,
-        )
+        return export_transcript_pdf_response(transcript=transcript, filename=filename)
 
     return api_response(data=transcript, message="Student academic transcript generated successfully.")
 

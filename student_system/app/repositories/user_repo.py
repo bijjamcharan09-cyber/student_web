@@ -91,3 +91,31 @@ class UserRepository:
         """
         params.extend([limit, offset])
         return db.query_all(sql, tuple(params))
+
+    @staticmethod
+    def update_user(user_id: int, data: Dict[str, Any]) -> int:
+        allowed_fields = ["username", "email", "role", "is_active", "password_hash", "student_id", "faculty_id"]
+        fields = []
+        params = {}
+        for key, value in data.items():
+            if key in allowed_fields:
+                fields.append(f"`{key}` = %({key})s")
+                params[key] = value
+
+        if not fields:
+            return 0
+
+        params["user_id"] = user_id
+        sql = f"UPDATE users SET {', '.join(fields)} WHERE id = %(user_id)s"
+        return db.execute_update(sql, params)
+
+    @staticmethod
+    def delete_user(user_id: int) -> int:
+        sql = "DELETE FROM users WHERE id = %s"
+        return db.execute_update(sql, (user_id,))
+
+    @staticmethod
+    def count_active_admins() -> int:
+        sql = "SELECT COUNT(*) as c FROM users WHERE role = 'Admin' AND is_active = 1"
+        row = db.query_one(sql)
+        return row["c"] if row else 0

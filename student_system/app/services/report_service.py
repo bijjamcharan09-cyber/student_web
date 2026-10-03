@@ -93,7 +93,10 @@ class ReportService:
 
                 sub_data["overall_percentage"] = final_pct
                 sub_data["overall_grade"] = sub_grade
+                sub_data["grade"] = sub_grade
                 sub_data["grade_point"] = sub_pts
+                sub_data["code"] = sub_data.get("subject_code", "")
+                sub_data["name"] = sub_data.get("subject_name", "")
 
                 sem_credits += credits
                 sem_points += (credits * sub_pts)
@@ -107,6 +110,7 @@ class ReportService:
             semester_reports.append({
                 "semester_id": sem_id,
                 "semester_name": sem_data["semester_name"],
+                "semester": sem_data["semester_name"],
                 "total_credits": sem_credits,
                 "semester_gpa": sem_sgpa,
                 "sgpa": sem_sgpa,
@@ -137,6 +141,8 @@ class ReportService:
                 "cgpa": cgpa,
                 "equivalent_percentage": equiv_pct,
             },
+            "cgpa": cgpa,
+            "total_credits": cumulative_credits,
             "semesters": semester_reports,
             "attendance": attendance_info["overall_summary"],
         }

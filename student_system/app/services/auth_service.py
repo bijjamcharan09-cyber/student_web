@@ -187,3 +187,97 @@ class AuthService:
     def list_users(role: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """List user accounts (Admin only)."""
         return UserRepository.list_users(role=role, limit=limit, offset=offset)
+
+    @staticmethod
+    def update_user_account(user_id: int, data: Dict[str, Any], current_user: Dict[str, Any]) -> Dict[str, Any]:
+        """Update an existing user account with protection against self-lockout and admin loss."""
+        if current_user.get("role") != "Admin":
+            raise ForbiddenError("Only Administrators can update user accounts.")
+
+        target_user = UserRepository.get_by_id(user_id)
+        if not target_user:
+            raise NotFoundError(f"User with ID {user_id} not found.")
+
+        update_payload: Dict[str, Any] = {}
+
+        # Email
+        if "email" in data and data["email"]:
+            new_email = str(data["email"]).strip().lower()
+            if new_email != target_user["email"]:
+                existing_email = UserRepository.get_by_email(new_email)
+                if existing_email and existing_email["id"] != user_id:
+                    raise ConflictError(f"Email '{new_email}' is already in use by another account.")
+                update_payload["email"] = new_email
+
+        # Username
+        if "username" in data and data["username"]:
+            new_username = str(data["username"]).strip()
+            if new_username != target_user["username"]:
+                existing_user = UserRepository.get_by_username(new_username)
+                if existing_user and existing_user["id"] != user_id:
+                    raise ConflictError(f"Username '{new_username}' is already taken.")
+                update_payload["username"] = new_username
+
+        # Password
+        if "password" in data and data["password"]:
+            pwd = str(data["password"]).strip()
+            if len(pwd) < 6:
+                raise ValidationError("Password must be at least 6 characters long.")
+            update_payload["password_hash"] = generate_password_hash(pwd)
+
+        # Role change
+        if "role" in data and data["role"]:
+            new_role = str(data["role"]).strip().capitalize()
+            if new_role not in ("Admin", "Faculty", "Student"):
+                raise ValidationError(f"Invalid role '{new_role}'. Must be Admin, Faculty, or Student.")
+
+            # Prevent Admin from demoting their own account
+            if target_user["id"] == current_user["id"] and new_role != "Admin":
+                raise ForbiddenError("You cannot revoke your own Administrator privileges.")
+
+            # Prevent demoting the only active Admin
+            if target_user["role"] == "Admin" and new_role != "Admin":
+                if UserRepository.count_active_admins() <= 1:
+                    raise ForbiddenError("Cannot demote the only remaining active Administrator.")
+
+            update_payload["role"] = new_role
+
+        # Active status
+        if "is_active" in data:
+            is_active = bool(data["is_active"])
+            # Prevent deactivating own account
+            if target_user["id"] == current_user["id"] and not is_active:
+                raise ForbiddenError("You cannot deactivate your own active Administrator account.")
+            # Prevent deactivating the only active Admin
+            if target_user["role"] == "Admin" and not is_active:
+                if UserRepository.count_active_admins() <= 1:
+                    raise ForbiddenError("Cannot deactivate the only remaining active Administrator.")
+            update_payload["is_active"] = is_active
+
+        if update_payload:
+            UserRepository.update_user(user_id, update_payload)
+
+        updated = UserRepository.get_by_id(user_id)
+        return {k: v for k, v in updated.items() if k != "password_hash"}
+
+    @staticmethod
+    def delete_user_account(user_id: int, current_user: Dict[str, Any]) -> bool:
+        """Delete an existing user account with protection against self-deletion and admin loss."""
+        if current_user.get("role") != "Admin":
+            raise ForbiddenError("Only Administrators can delete user accounts.")
+
+        target_user = UserRepository.get_by_id(user_id)
+        if not target_user:
+            raise NotFoundError(f"User with ID {user_id} not found.")
+
+        # Prevent deleting own account
+        if target_user["id"] == current_user["id"]:
+            raise ForbiddenError("You cannot delete your own active Administrator account.")
+
+        # Prevent deleting the only active Admin
+        if target_user["role"] == "Admin":
+            if UserRepository.count_active_admins() <= 1:
+                raise ForbiddenError("Cannot delete the only remaining active Administrator.")
+
+        UserRepository.delete_user(user_id)
+        return True

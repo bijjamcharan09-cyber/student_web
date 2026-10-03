@@ -4,6 +4,7 @@ Subjects API blueprint using standard Flask routes.
 
 from flask import Blueprint, request
 from app.services.subject_service import SubjectService
+from app.utils.auth import roles_required
 from app.utils.responses import api_response
 from app.utils.validators import parse_pagination
 
@@ -50,15 +51,17 @@ def get_subject(subject_id: int):
 
 
 @subjects_bp.route("/<int:subject_id>", methods=["PUT", "PATCH"])
+@roles_required("Admin")
 def update_subject(subject_id: int):
-    """Update subject details."""
+    """Update subject details (Admin only)."""
     payload = request.get_json(silent=True) or {}
     updated = SubjectService.update_subject(subject_id, payload)
     return api_response(data=updated, message="Subject updated successfully")
 
 
 @subjects_bp.route("/<int:subject_id>", methods=["DELETE"])
+@roles_required("Admin")
 def delete_subject(subject_id: int):
-    """Delete a subject."""
+    """Delete a subject (Admin only)."""
     SubjectService.delete_subject(subject_id)
     return api_response(data={"deleted_id": subject_id}, message="Subject deleted successfully")

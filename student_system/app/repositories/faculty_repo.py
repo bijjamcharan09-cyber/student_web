@@ -107,3 +107,31 @@ class FacultyRepository:
         """
         row = db.query_one(sql, (faculty_id, student_id))
         return row is not None
+
+    @staticmethod
+    def update(faculty_id: int, data: Dict[str, Any]) -> int:
+        allowed = ["faculty_code", "first_name", "last_name", "email", "phone", "department", "designation"]
+        fields = []
+        params = {}
+        for key, value in data.items():
+            if key in allowed:
+                fields.append(f"`{key}` = %({key})s")
+                params[key] = value
+
+        if not fields:
+            return 0
+
+        params["faculty_id"] = faculty_id
+        sql = f"UPDATE faculty SET {', '.join(fields)} WHERE id = %(faculty_id)s"
+        return db.execute_update(sql, params)
+
+    @staticmethod
+    def delete(faculty_id: int) -> int:
+        sql = "DELETE FROM faculty WHERE id = %s"
+        return db.execute_update(sql, (faculty_id,))
+
+    @staticmethod
+    def count_assigned_subjects(faculty_id: int) -> int:
+        sql = "SELECT COUNT(*) as c FROM faculty_subjects WHERE faculty_id = %s"
+        row = db.query_one(sql, (faculty_id,))
+        return row["c"] if row else 0

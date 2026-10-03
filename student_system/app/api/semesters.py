@@ -4,6 +4,7 @@ Semesters API blueprint using standard Flask routes.
 
 from flask import Blueprint, request
 from app.services.semester_service import SemesterService
+from app.utils.auth import roles_required
 from app.utils.responses import api_response
 
 semesters_bp = Blueprint("semesters", __name__, url_prefix="/api/v1/semesters")
@@ -40,8 +41,9 @@ def get_semester(semester_id: int):
 
 
 @semesters_bp.route("/<int:semester_id>", methods=["PUT", "PATCH"])
+@roles_required("Admin")
 def update_semester(semester_id: int):
-    """Update semester details."""
+    """Update semester details (Admin only)."""
     payload = request.get_json(silent=True) or {}
     updated = SemesterService.update_semester(semester_id, payload)
     return api_response(data=updated, message="Semester updated successfully")
@@ -55,7 +57,8 @@ def activate_semester(semester_id: int):
 
 
 @semesters_bp.route("/<int:semester_id>", methods=["DELETE"])
+@roles_required("Admin")
 def delete_semester(semester_id: int):
-    """Delete a semester."""
+    """Delete a semester (Admin only)."""
     SemesterService.delete_semester(semester_id)
     return api_response(data={"deleted_id": semester_id}, message="Semester deleted successfully")

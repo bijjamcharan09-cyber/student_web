@@ -73,6 +73,39 @@ class SemesterService:
         if not existing:
             raise NotFoundError(f"Semester with ID {semester_id} not found.")
 
+        from app import db
+        sub_count = db.query_one("SELECT COUNT(*) as c FROM subjects WHERE semester_id = %s", (semester_id,))
+        sc = sub_count["c"] if sub_count else 0
+
+        stu_count = db.query_one("SELECT COUNT(*) as c FROM students WHERE current_semester_id = %s", (semester_id,))
+        stuc = stu_count["c"] if stu_count else 0
+
+        mark_count = db.query_one("SELECT COUNT(*) as c FROM marks WHERE semester_id = %s", (semester_id,))
+        mc = mark_count["c"] if mark_count else 0
+
+        ss_count = db.query_one("SELECT COUNT(*) as c FROM student_subjects WHERE semester_id = %s", (semester_id,))
+        ssc = ss_count["c"] if ss_count else 0
+
+        fs_count = db.query_one("SELECT COUNT(*) as c FROM faculty_subjects WHERE semester_id = %s", (semester_id,))
+        fsc = fs_count["c"] if fs_count else 0
+
+        if sc > 0 or stuc > 0 or mc > 0 or ssc > 0 or fsc > 0:
+            reasons = []
+            if sc:
+                reasons.append(f"{sc} curriculum subject(s)")
+            if stuc:
+                reasons.append(f"{stuc} assigned student(s)")
+            if mc:
+                reasons.append(f"{mc} academic mark record(s)")
+            if ssc:
+                reasons.append(f"{ssc} student enrollment(s)")
+            if fsc:
+                reasons.append(f"{fsc} faculty course assignment(s)")
+            raise ConflictError(
+                f"Cannot delete semester: Semester contains linked records ({', '.join(reasons)}). "
+                f"Please resolve or archive related records before deleting."
+            )
+
         SemesterRepository.delete(semester_id)
         return True
 

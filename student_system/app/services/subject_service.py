@@ -68,6 +68,35 @@ class SubjectService:
         if not existing:
             raise NotFoundError(f"Subject with ID {subject_id} not found.")
 
+        from app import db
+        # Check active dependencies
+        m_count = db.query_one("SELECT COUNT(*) as c FROM marks WHERE subject_id = %s", (subject_id,))
+        marks_count = m_count["c"] if m_count else 0
+
+        a_count = db.query_one("SELECT COUNT(*) as c FROM attendance WHERE subject_id = %s", (subject_id,))
+        att_count = a_count["c"] if a_count else 0
+
+        e_count = db.query_one("SELECT COUNT(*) as c FROM student_subjects WHERE subject_id = %s", (subject_id,))
+        enrolled_count = e_count["c"] if e_count else 0
+
+        f_count = db.query_one("SELECT COUNT(*) as c FROM faculty_subjects WHERE subject_id = %s", (subject_id,))
+        fac_count = f_count["c"] if f_count else 0
+
+        if marks_count > 0 or att_count > 0 or enrolled_count > 0 or fac_count > 0:
+            reasons = []
+            if marks_count:
+                reasons.append(f"{marks_count} academic mark(s)")
+            if att_count:
+                reasons.append(f"{att_count} attendance record(s)")
+            if enrolled_count:
+                reasons.append(f"{enrolled_count} enrolled student(s)")
+            if fac_count:
+                reasons.append(f"{fac_count} assigned instructor(s)")
+            raise ConflictError(
+                f"Cannot delete subject: Course has active academic dependencies ({', '.join(reasons)}). "
+                f"Please resolve or archive related course records before deleting."
+            )
+
         SubjectRepository.delete(subject_id)
         return True
 
