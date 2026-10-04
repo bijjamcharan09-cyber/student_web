@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Student Signup - Student Management System</title>
+  <style>
+    :root {
+      --primary: #4f46e5;
+      --primary-hover: #4338ca;
+      --bg: #f8fafc;
+      --card-bg: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 12px;
+      --shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.08), 0 8px 10px -6px rgba(0, 0, 0, 0.04);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); min-height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 30px 16px; }
+
+    .brand-header { text-align: center; margin-bottom: 24px; }
+    .brand-logo { display: inline-flex; align-items: center; gap: 10px; font-size: 1.4rem; font-weight: 700; color: var(--primary); text-decoration: none; }
+    .brand-sub { color: var(--text-muted); font-size: 0.95rem; margin-top: 6px; }
+
+    .card {
+      background: var(--card-bg); width: 100%; max-width: 480px; border-radius: var(--radius);
+      box-shadow: var(--shadow); border: 1px solid var(--border); padding: 32px;
+    }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label { display: block; font-size: 0.85rem; font-weight: 600; color: #334155; margin-bottom: 6px; }
+    .form-group input {
+      width: 100%; padding: 11px 14px; border: 1px solid var(--border); border-radius: 8px; font-size: 0.95rem;
+      outline: none; transition: border-color 0.2s, box-shadow 0.2s; background: #fff;
+    }
+    .form-group input:focus {
+      border-color: var(--primary); box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+    }
+    .input-hint { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; }
+
+    .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    @media (max-width: 480px) {
+      .grid-2 { grid-template-columns: 1fr; }
+    }
+
+    .btn-submit {
+      width: 100%; background: var(--primary); color: white; border: none; padding: 12px;
+      font-size: 1rem; font-weight: 600; border-radius: 8px; cursor: pointer; transition: background 0.2s; margin-top: 10px;
+    }
+    .btn-submit:hover { background: var(--primary-hover); }
+
+    .footer-prompt {
+      text-align: center; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border);
+      font-size: 0.9rem; color: var(--text-muted);
+    }
+    .footer-prompt a { color: var(--primary); font-weight: 600; text-decoration: none; }
+    .footer-prompt a:hover { text-decoration: underline; }
+
+    #alertBox {
+      display: none; padding: 12px 16px; border-radius: 8px; font-size: 0.88rem; margin-bottom: 18px; font-weight: 500;
+    }
+    .alert-danger { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
+    .alert-success { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+  </style>
+</head>
+<body>
+
+  <div class="brand-header">
+    <div class="brand-logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/>
+        <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+      </svg>
+      <span>Student Management System</span>
+    </div>
+    <div class="brand-sub">Student Portal — Create Your Account</div>
+  </div>
+
+  <div class="card">
+    <div id="alertBox"></div>
+
+    <form onsubmit="handleSignup(event)">
+      <div class="form-group">
+        <label for="nameInput">Full Name *</label>
+        <input type="text" id="nameInput" name="name" placeholder="e.g. Alex Morgan" autocomplete="name" required>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="usernameInput">Username *</label>
+          <input type="text" id="usernameInput" name="username" placeholder="e.g. amorgan" autocomplete="username" minlength="3" required>
+        </div>
+        <div class="form-group">
+          <label for="rollNumberInput">Roll Number</label>
+          <input type="text" id="rollNumberInput" name="roll_number" placeholder="e.g. 25291A6605 (Optional)">
+          <div class="input-hint">Leave blank to auto-generate</div>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label for="emailInput">Email Address *</label>
+        <input type="email" id="emailInput" name="email" placeholder="e.g. alex.morgan@college.edu" autocomplete="email" required>
+      </div>
+
+      <div class="grid-2">
+        <div class="form-group">
+          <label for="passwordInput">Password *</label>
+          <input type="password" id="passwordInput" name="password" placeholder="••••••••" autocomplete="new-password" minlength="6" required>
+        </div>
+        <div class="form-group">
+          <label for="confirmPasswordInput">Confirm Password *</label>
+          <input type="password" id="confirmPasswordInput" name="confirm_password" placeholder="••••••••" autocomplete="new-password" minlength="6" required>
+        </div>
+      </div>
+
+      <button type="submit" id="submitBtn" class="btn-submit">Create Student Account</button>
+    </form>
+
+    <div class="footer-prompt">
+      Already have an account? <a href="/login">Login</a>
+    </div>
+  </div>
+
+  <script>
+    async function handleSignup(e) {
+      e.preventDefault();
+      const alertBox = document.getElementById('alertBox');
+      alertBox.style.display = 'none';
+
+      const name = document.getElementById('nameInput').value.trim();
+      const username = document.getElementById('usernameInput').value.trim();
+      const rollNumber = document.getElementById('rollNumberInput').value.trim();
+      const email = document.getElementById('emailInput').value.trim();
+      const password = document.getElementById('passwordInput').value.trim();
+      const confirmPassword = document.getElementById('confirmPasswordInput').value.trim();
+
+      if (password !== confirmPassword) {
+        showAlert('Passwords do not match. Please re-enter matching passwords.', 'danger');
+        return;
+      }
+
+      if (password.length < 6) {
+        showAlert('Password must be at least 6 characters long.', 'danger');
+        return;
+      }
+
+      const submitBtn = document.getElementById('submitBtn');
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Creating Account...';
+
+      try {
+        const payload = {
+          name: name,
+          username: username,
+          email: email,
+          password: password,
+          confirm_password: confirmPassword
+        };
+        if (rollNumber) {
+          payload.roll_number = rollNumber;
+        }
+
+        const res = await fetch('/api/v1/auth/signup', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+
+        const json = await res.json();
+        if (json.success) {
+          showAlert('Account created successfully! Redirecting to login...', 'success');
+          setTimeout(() => {
+            if (window.location.protocol === 'file:' || window.location.pathname.endsWith('.html')) {
+              window.location.href = 'login.html?registered=1';
+            } else {
+              window.location.href = '/login?registered=1';
+            }
+          }, 1000);
+        } else {
+          showAlert(json.error ? json.error.message : 'Registration failed. Please check your information.', 'danger');
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Create Student Account';
+        }
+      } catch (err) {
+        showAlert('Network error: Could not reach the server. Please verify the server is running.', 'danger');
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Create Student Account';
+      }
+    }
+
+    function showAlert(msg, type) {
+      const alertBox = document.getElementById('alertBox');
+      alertBox.textContent = msg;
+      alertBox.className = type === 'danger' ? 'alert-danger' : 'alert-success';
+      alertBox.style.display = 'block';
+    }
+  </script>
+</body>
+</html>

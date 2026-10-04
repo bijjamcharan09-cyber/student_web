@@ -84,6 +84,16 @@ def create_app(config_name: str = "development") -> Flask:
             return api_response(data=user, message="User account registered successfully by administrator.", status_code=201)
         return render_template("register.html")
 
+    @app.route("/signup", methods=["GET", "POST"])
+    @app.route("/signup.html", methods=["GET"])
+    def signup_page():
+        """Public student signup page and submission handler."""
+        if request.method == "POST":
+            payload = request.get_json(silent=True) or request.form.to_dict() or {}
+            user = AuthService.register_student_public(payload)
+            return api_response(data=user, message="Student account created successfully.", status_code=201)
+        return render_template("signup.html")
+
     @app.route("/login", methods=["GET"])
     @app.route("/login.html", methods=["GET"])
     def login_page():

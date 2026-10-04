@@ -48,6 +48,14 @@ def get_current_profile():
     return api_response(data=user_clean, message="Authenticated profile retrieved successfully.")
 
 
+@auth_bp.route("/signup", methods=["POST"])
+def public_student_signup():
+    """Public self-registration endpoint for Students only."""
+    payload = request.get_json(silent=True) or request.form.to_dict() or {}
+    user = AuthService.register_student_public(payload)
+    return api_response(data=user, message="Student account registered successfully.", status_code=201)
+
+
 @auth_bp.route("/register", methods=["POST"])
 @roles_required("Admin")
 def register_user():

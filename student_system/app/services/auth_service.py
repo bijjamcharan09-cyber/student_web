@@ -184,6 +184,128 @@ class AuthService:
         return {k: v for k, v in created.items() if k != "password_hash"}
 
     @staticmethod
+    def register_student_public(data: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Public self-service student registration.
+        Strictly forces role to 'Student' and strips any attempts to gain Admin/Faculty privileges.
+        Creates or links an associated student profile record.
+        """
+        # 1. Strip/ignore any client-provided role or faculty assignments
+        # role is unconditionally forced to 'Student'
+        forced_role = "Student"
+
+        # 2. Parse name fields
+        raw_name = str(data.get("name", "") or data.get("full_name", "")).strip()
+        first_name = str(data.get("first_name", "")).strip()
+        last_name = str(data.get("last_name", "")).strip()
+
+        if raw_name and not (first_name or last_name):
+            parts = raw_name.split(None, 1)
+            first_name = parts[0]
+            last_name = parts[1] if len(parts) > 1 else ""
+
+        email = str(data.get("email", "")).strip().lower()
+        password = str(data.get("password", "")).strip()
+        confirm_password = str(data.get("confirm_password", "")).strip() if "confirm_password" in data else None
+        roll_number = str(data.get("roll_number", "")).strip().upper()
+
+        # 3. Input validations
+        if not email or "@" not in email:
+            raise ValidationError("A valid email address is required.")
+
+        if confirm_password is not None and password != confirm_password:
+            raise ValidationError("Passwords do not match.")
+
+        if not password or len(password) < 6:
+            raise ValidationError("Password must be at least 6 characters long.")
+
+        # 4. Generate or validate username
+        raw_username = str(data.get("username", "")).strip().lower()
+        if not raw_username:
+            if email and "@" in email:
+                base_username = re.sub(r'[^a-z0-9_]', '', email.split("@")[0].lower())
+            elif first_name:
+                base_username = re.sub(r'[^a-z0-9_]', '', f"{first_name}_{last_name}".strip("_").lower())
+            else:
+                base_username = "student"
+
+            candidate = base_username
+            idx = 1
+            while UserRepository.get_by_username(candidate):
+                candidate = f"{base_username}_{idx}"
+                idx += 1
+            username = candidate
+        else:
+            username = raw_username
+
+        if not username or len(username) < 3:
+            raise ValidationError("Username must be at least 3 characters.")
+
+        # 5. Check uniqueness in users table
+        if UserRepository.get_by_username(username):
+            raise ConflictError(f"Username '{username}' is already in use.")
+        if UserRepository.get_by_email(email):
+            raise ConflictError(f"Email '{email}' is already registered.")
+
+        # 6. Student record linking / creation
+        existing_student = None
+        if roll_number:
+            existing_student = StudentRepository.get_by_roll_number(roll_number)
+            if existing_student:
+                # Security check: if student already has a user account
+                if UserRepository.get_by_student_id(existing_student["id"]):
+                    raise ConflictError("A user account already exists for this student roll number.")
+                # Security check: if student record has an email that differs from registration email
+                if existing_student.get("email") and existing_student["email"].lower() != email:
+                    raise ConflictError("The provided roll number is registered to a different email address.")
+
+        if not existing_student:
+            student_by_email = StudentRepository.get_by_email(email)
+            if student_by_email:
+                if UserRepository.get_by_student_id(student_by_email["id"]):
+                    raise ConflictError("A user account already exists for this student email.")
+                existing_student = student_by_email
+
+        if existing_student:
+            student_id = existing_student["id"]
+        else:
+            if not roll_number:
+                for _ in range(10):
+                    candidate_roll = f"STU-{random.randint(10000, 99999)}"
+                    if not StudentRepository.get_by_roll_number(candidate_roll):
+                        roll_number = candidate_roll
+                        break
+                if not roll_number:
+                    roll_number = f"STU-{int(datetime.now().timestamp())}"
+
+            student_id = StudentRepository.create({
+                "roll_number": roll_number,
+                "first_name": first_name or username.capitalize(),
+                "last_name": last_name or "",
+                "email": email,
+                "date_of_birth": data.get("date_of_birth") or "2002-01-01",
+                "gender": data.get("gender") or "Other",
+                "enrollment_date": datetime.now().strftime("%Y-%m-%d"),
+                "status": "Active",
+                "address": data.get("address") or "",
+            })
+
+        # 7. Create user record with forced Student role and no faculty_id
+        password_hash = generate_password_hash(password)
+        user_id = UserRepository.create({
+            "username": username,
+            "email": email,
+            "password_hash": password_hash,
+            "role": forced_role,
+            "student_id": student_id,
+            "faculty_id": None,
+            "is_active": True,
+        })
+
+        created = UserRepository.get_by_id(user_id)
+        return {k: v for k, v in created.items() if k != "password_hash"}
+
+    @staticmethod
     def list_users(role: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
         """List user accounts (Admin only)."""
         return UserRepository.list_users(role=role, limit=limit, offset=offset)

@@ -83,9 +83,20 @@
 
       <button type="submit" id="submitBtn" class="btn-submit">Sign In</button>
     </form>
+
+    <div style="text-align: center; margin-top: 22px; padding-top: 18px; border-top: 1px solid var(--border); font-size: 0.9rem; color: var(--text-muted);">
+      Don't have an account? <a href="/signup" style="color: var(--primary); font-weight: 600; text-decoration: none;">Sign up as Student</a>
+    </div>
   </div>
 
   <script>
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('registered') === '1') {
+        showAlert('Registration successful! Please sign in with your new student account.', 'success');
+      }
+    });
+
     async function handleLogin(e) {
       e.preventDefault();
       const alertBox = document.getElementById('alertBox');
