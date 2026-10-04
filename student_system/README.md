@@ -34,7 +34,7 @@ Version 2.0 provides an enterprise-grade academic management architecture with f
    - Dual authentication: Cryptographically signed HTTP-only session cookies and bearer tokens (`itsdangerous`).
 
 2. **Admin-Only User Registration**:
-   - **No Public Registration**: Public signup endpoints and self-registration forms are eliminated.
+   - **No Public Registration based on roles(faculty/admin)**: Public signup endpoints and self-registration forms are eliminated.
    - Only authenticated Administrators can provision new accounts (**Student**, **Faculty**, or **Admin**).
    - Unauthenticated access to `/register` yields `401 Unauthorized`. Non-admin access yields `403 Forbidden`.
    - Admin enters user details $\to$ system auto-provisions or links corresponding student/faculty records $\to$ user can immediately sign in.
@@ -118,9 +118,12 @@ Under JNTUH regulations, student evaluation follows an absolute 10-point scale:
 
 ---
 
-## 4. Admin-Only User Registration Architecture
+## 4. User Registration Architecture
 
-To guarantee institutional integrity, public user registration is permanently disabled.
+SMS V2 provides a secure account creation system:
+
+### 4.1 Admin-Only Provisioning (Faculty, Admin, & Student)
+Privileged accounts (Faculty and Admin) can only be created by an authenticated Administrator:
 
 ```text
 Admin Login (Credentials verified)
@@ -145,12 +148,22 @@ Backend Provisions User in MySQL:
 New user logs in with their credentials and accesses their portal
 ```
 
+### 4.2 Public Student Self-Signup
+Students can self-register directly via the public portal:
+- Accessible at `/signup` (or `/signup.html`) without login.
+- Direct API endpoint: `POST /api/v1/auth/signup`.
+- **Enforced Student Role**: Public registration strictly forces `role = "Student"`. Any client-submitted parameters attempting to gain privileges (`role=admin`, `is_admin`, `faculty_id`) are stripped and rejected server-side.
+- Automatically links to an existing student profile if roll number matches, or provisions a new student record in MySQL.
+- Direct signup prompt available on `/login`: *"Don't have an account? Sign up as Student"*.
+
 ---
 
 ## 5. Role-Based Access Control (RBAC) Matrix
 
 | Endpoint | Method | Admin | Faculty | Student | Security Policy |
 | :--- | :---: | :---: | :---: | :---: | :--- |
+| `/signup` (Web) | `GET/POST`| ✅ | ✅ | ✅ | Public student signup form and submission handler |
+| `/api/v1/auth/signup` | `POST` | ✅ | ✅ | ✅ | Public student self-registration (Forces Student role) |
 | `/api/v1/auth/login` | `POST` | ✅ | ✅ | ✅ | Public sign-in; returns session cookie + bearer token |
 | `/api/v1/auth/logout` | `POST` | ✅ | ✅ | ✅ | Clears session cookie and invalidates client state |
 | `/api/v1/auth/me` | `GET` | ✅ | ✅ | ✅ | Returns authenticated user profile and role |
