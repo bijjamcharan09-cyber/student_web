@@ -72,6 +72,37 @@
     .btn-danger:hover { background: #fecaca; }
     .btn-sm { padding: 4px 10px; font-size: 0.8rem; }
 
+    .password-wrapper {
+      position: relative;
+      display: flex;
+      align-items: center;
+      width: 100%;
+    }
+    .password-wrapper input {
+      width: 100%;
+      padding-right: 42px !important;
+    }
+    .password-toggle-btn {
+      position: absolute;
+      right: 10px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      border-radius: 4px;
+      transition: color 0.2s;
+    }
+    .password-toggle-btn:hover {
+      color: var(--primary);
+    }
+    .password-toggle-btn:focus-visible {
+      outline: 2px solid var(--primary);
+    }
+
     /* Table */
     .table-container { background: var(--card-bg); border-radius: var(--radius); border: 1px solid var(--border); box-shadow: var(--shadow); overflow-x: auto; }
     table { width: 100%; border-collapse: collapse; text-align: left; font-size: 0.9rem; }
@@ -235,6 +266,19 @@
             <option value="Inactive">Inactive</option>
             <option value="Suspended">Suspended</option>
           </select>
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-left: 6px;">Sort By:</label>
+          <select id="studentSortBy" onchange="loadStudents()">
+            <option value="roll_number">Roll Number</option>
+            <option value="name">Student Name</option>
+            <option value="email">Email</option>
+            <option value="semester">Semester</option>
+            <option value="status">Status</option>
+            <option value="id">Recently Added</option>
+          </select>
+          <select id="studentSortOrder" onchange="loadStudents()">
+            <option value="asc">Ascending (A-Z, 1-9)</option>
+            <option value="desc">Descending (Z-A, 9-1)</option>
+          </select>
         </div>
         <button class="btn" id="addStudentBtn" onclick="document.getElementById('addStudentDialog').showModal()">+ Add Student</button>
       </div>
@@ -263,6 +307,19 @@
       <div class="toolbar">
         <div class="filters">
           <input type="text" id="facultySearch" placeholder="Search faculty..." oninput="debounce(loadFaculty, 300)()">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-left: 6px;">Sort By:</label>
+          <select id="facultySortBy" onchange="loadFaculty()">
+            <option value="name">Faculty Name</option>
+            <option value="faculty_code">Faculty Code</option>
+            <option value="department">Department</option>
+            <option value="designation">Designation</option>
+            <option value="email">Email</option>
+            <option value="id">Recently Added</option>
+          </select>
+          <select id="facultySortOrder" onchange="loadFaculty()">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
         </div>
         <button class="btn" id="addFacultyBtn" onclick="document.getElementById('addFacultyDialog').showModal()">+ Add Faculty</button>
       </div>
@@ -292,6 +349,19 @@
       <div class="toolbar">
         <div class="filters">
           <input type="text" id="subjectSearch" placeholder="Search subjects..." oninput="debounce(loadSubjects, 300)()">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-left: 6px;">Sort By:</label>
+          <select id="subjectSortBy" onchange="loadSubjects()">
+            <option value="subject_code">Subject Code</option>
+            <option value="name">Course Name</option>
+            <option value="department">Department</option>
+            <option value="credits">Credits</option>
+            <option value="semester">Semester</option>
+            <option value="id">Recently Added</option>
+          </select>
+          <select id="subjectSortOrder" onchange="loadSubjects()">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
         </div>
         <button class="btn" id="addSubjectBtn" onclick="document.getElementById('addSubjectDialog').showModal()">+ Add Subject</button>
       </div>
@@ -317,7 +387,21 @@
     <!-- TAB 5: SEMESTERS -->
     <div id="tab-semesters" class="tab-content">
       <div class="toolbar">
-        <div></div>
+        <div class="filters">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Sort By:</label>
+          <select id="semesterSortBy" onchange="loadSemesters()">
+            <option value="semester_number">Term Number</option>
+            <option value="name">Semester Name</option>
+            <option value="academic_year">Academic Year</option>
+            <option value="start_date">Start Date</option>
+            <option value="is_active">Status</option>
+            <option value="id">Recently Added</option>
+          </select>
+          <select id="semesterSortOrder" onchange="loadSemesters()">
+            <option value="asc">Ascending</option>
+            <option value="desc">Descending</option>
+          </select>
+        </div>
         <button class="btn" id="addSemesterBtn" onclick="document.getElementById('addSemesterDialog').showModal()">+ Add Semester</button>
       </div>
       <div class="table-container">
@@ -342,7 +426,23 @@
     <!-- TAB 6: MARKS -->
     <div id="tab-marks" class="tab-content">
       <div class="toolbar">
-        <div></div>
+        <div class="filters">
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted);">Sort By:</label>
+          <select id="marksSortBy" onchange="loadMarks()">
+            <option value="roll_number">Student Roll Number</option>
+            <option value="student_name">Student Name</option>
+            <option value="subject">Subject</option>
+            <option value="marks_obtained">Marks Obtained</option>
+            <option value="percentage">Percentage</option>
+            <option value="exam_type">Exam Type</option>
+            <option value="semester">Semester</option>
+            <option value="id">Recently Recorded</option>
+          </select>
+          <select id="marksSortOrder" onchange="loadMarks()">
+            <option value="asc">Ascending</option>
+            <option value="desc" selected>Descending</option>
+          </select>
+        </div>
         <button class="btn" id="addMarkBtn" onclick="document.getElementById('addMarkDialog').showModal()">+ Add Marks</button>
       </div>
       <div class="table-container">
@@ -376,6 +476,19 @@
             <option value="Absent">Absent</option>
             <option value="Late">Late</option>
             <option value="Excused">Excused</option>
+          </select>
+          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-left: 6px;">Sort By:</label>
+          <select id="attendanceSortBy" onchange="loadAttendance()">
+            <option value="date">Date</option>
+            <option value="roll_number">Student Roll Number</option>
+            <option value="student_name">Student Name</option>
+            <option value="subject">Subject</option>
+            <option value="status">Status</option>
+            <option value="id">Recently Logged</option>
+          </select>
+          <select id="attendanceSortOrder" onchange="loadAttendance()">
+            <option value="desc">Descending (Latest / Z-A)</option>
+            <option value="asc">Ascending (Oldest / A-Z)</option>
           </select>
         </div>
         <button class="btn" id="addAttendanceBtn" onclick="document.getElementById('addAttendanceDialog').showModal()">+ Log Attendance</button>
@@ -566,11 +679,21 @@
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         <div class="form-group">
           <label>Password *</label>
-          <input type="password" name="password" minlength="6" placeholder="Min 6 characters" required>
+          <div class="password-wrapper">
+            <input type="password" id="createUserPassword" name="password" minlength="6" placeholder="Min 6 characters" required>
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('createUserPassword', this)" aria-label="Show password" title="Show password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
         </div>
         <div class="form-group">
           <label>Confirm Password *</label>
-          <input type="password" name="confirm_password" minlength="6" placeholder="Repeat password" required>
+          <div class="password-wrapper">
+            <input type="password" id="createUserConfirmPassword" name="confirm_password" minlength="6" placeholder="Repeat password" required>
+            <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('createUserConfirmPassword', this)" aria-label="Show password" title="Show password">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -971,7 +1094,12 @@
       </div>
       <div class="form-group">
         <label>Reset Password (optional)</label>
-        <input type="password" id="editUserPassword" name="password" minlength="6" placeholder="Leave blank to keep current password">
+        <div class="password-wrapper">
+          <input type="password" id="editUserPassword" name="password" minlength="6" placeholder="Leave blank to keep current password">
+          <button type="button" class="password-toggle-btn" onclick="togglePasswordVisibility('editUserPassword', this)" aria-label="Show password" title="Show password">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+          </button>
+        </div>
       </div>
       <div class="form-actions">
         <button type="button" class="btn btn-secondary" onclick="document.getElementById('editUserDialog').close()">Cancel</button>
@@ -992,6 +1120,18 @@
         options.headers['Authorization'] = `Bearer ${authToken}`;
       }
       return fetch(url, options);
+    }
+
+    function togglePasswordVisibility(inputId, btn) {
+      const input = document.getElementById(inputId);
+      if (!input) return;
+      const isPassword = input.type === 'password';
+      input.type = isPassword ? 'text' : 'password';
+      btn.setAttribute('aria-label', isPassword ? 'Hide password' : 'Show password');
+      btn.setAttribute('title', isPassword ? 'Hide password' : 'Show password');
+      btn.innerHTML = isPassword
+        ? `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`
+        : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
     }
 
     // Initialize session check
@@ -1415,14 +1555,16 @@
 
     // STUDENTS CRUD
     async function loadStudents() {
-      const search = document.getElementById('studentSearch').value;
-      const status = document.getElementById('studentStatusFilter').value;
-      const res = await authFetch(`/api/v1/students?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&per_page=50`);
+      const search = document.getElementById('studentSearch')?.value || '';
+      const status = document.getElementById('studentStatusFilter')?.value || '';
+      const sortBy = document.getElementById('studentSortBy')?.value || 'roll_number';
+      const order = document.getElementById('studentSortOrder')?.value || 'asc';
+      const res = await authFetch(`/api/v1/students?search=${encodeURIComponent(search)}&status=${encodeURIComponent(status)}&sort_by=${encodeURIComponent(sortBy)}&order=${encodeURIComponent(order)}&per_page=50`);
       const json = await res.json();
       const tbody = document.getElementById('studentsTableBody');
 
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No students found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No students found matching current criteria.</td></tr>';
         return;
       }
 
@@ -1476,11 +1618,14 @@
 
     // FACULTY CRUD
     async function loadFaculty() {
-      const res = await authFetch('/api/v1/faculty?per_page=50');
+      const search = document.getElementById('facultySearch')?.value || '';
+      const sortBy = document.getElementById('facultySortBy')?.value || 'name';
+      const order = document.getElementById('facultySortOrder')?.value || 'asc';
+      const res = await authFetch(`/api/v1/faculty?search=${encodeURIComponent(search)}&sort_by=${encodeURIComponent(sortBy)}&order=${encodeURIComponent(order)}&per_page=50`);
       const json = await res.json();
       const tbody = document.getElementById('facultyTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px;">No faculty registered.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-muted);">No faculty found matching current criteria.</td></tr>';
         return;
       }
       const isAdmin = currentUser && currentUser.role === 'Admin';
@@ -1531,12 +1676,14 @@
 
     // SUBJECTS CRUD
     async function loadSubjects() {
-      const search = document.getElementById('subjectSearch').value;
-      const res = await authFetch(`/api/v1/subjects?search=${encodeURIComponent(search)}&per_page=50`);
+      const search = document.getElementById('subjectSearch')?.value || '';
+      const sortBy = document.getElementById('subjectSortBy')?.value || 'subject_code';
+      const order = document.getElementById('subjectSortOrder')?.value || 'asc';
+      const res = await authFetch(`/api/v1/subjects?search=${encodeURIComponent(search)}&sort_by=${encodeURIComponent(sortBy)}&order=${encodeURIComponent(order)}&per_page=50`);
       const json = await res.json();
       const tbody = document.getElementById('subjectsTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No subjects found.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No subjects found matching current criteria.</td></tr>';
         return;
       }
       const isAdmin = currentUser && currentUser.role === 'Admin';
@@ -1586,11 +1733,13 @@
 
     // SEMESTERS CRUD
     async function loadSemesters() {
-      const res = await authFetch('/api/v1/semesters');
+      const sortBy = document.getElementById('semesterSortBy')?.value || 'semester_number';
+      const order = document.getElementById('semesterSortOrder')?.value || 'asc';
+      const res = await authFetch(`/api/v1/semesters?sort_by=${encodeURIComponent(sortBy)}&order=${encodeURIComponent(order)}`);
       const json = await res.json();
       const tbody = document.getElementById('semestersTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No semesters configured.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No semesters configured matching current criteria.</td></tr>';
         return;
       }
       const isAdmin = currentUser && currentUser.role === 'Admin';
@@ -1657,11 +1806,13 @@
 
     // MARKS CRUD
     async function loadMarks() {
-      const res = await authFetch('/api/v1/marks?per_page=50');
+      const sortBy = document.getElementById('marksSortBy')?.value || 'roll_number';
+      const order = document.getElementById('marksSortOrder')?.value || 'desc';
+      const res = await authFetch(`/api/v1/marks?sort_by=${encodeURIComponent(sortBy)}&order=${encodeURIComponent(order)}&per_page=50`);
       const json = await res.json();
       const tbody = document.getElementById('marksTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px;">No marks recorded.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding: 24px; color: var(--text-muted);">No marks recorded matching current criteria.</td></tr>';
         return;
       }
       const isAdmin = currentUser && currentUser.role === 'Admin';
@@ -1713,13 +1864,18 @@
 
     // ATTENDANCE CRUD
     async function loadAttendance() {
-      const status = document.getElementById('attendanceStatusFilter').value;
-      const url = status ? `/api/v1/attendance?status=${encodeURIComponent(status)}&per_page=50` : '/api/v1/attendance?per_page=50';
+      const status = document.getElementById('attendanceStatusFilter')?.value || '';
+      const sortBy = document.getElementById('attendanceSortBy')?.value || 'date';
+      const order = document.getElementById('attendanceSortOrder')?.value || 'desc';
+      let url = `/api/v1/attendance?sort_by=${encodeURIComponent(sortBy)}&order=${encodeURIComponent(order)}&per_page=50`;
+      if (status) {
+        url += `&status=${encodeURIComponent(status)}`;
+      }
       const res = await authFetch(url);
       const json = await res.json();
       const tbody = document.getElementById('attendanceTableBody');
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px;">No attendance logged.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No attendance logged matching current criteria.</td></tr>';
         return;
       }
       const isAdmin = currentUser && currentUser.role === 'Admin';

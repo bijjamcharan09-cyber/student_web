@@ -61,6 +61,8 @@ class SemesterRepository:
     def list_semesters(
         academic_year: Optional[str] = None,
         is_active: Optional[bool] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         conditions = []
         params: List[Any] = []
@@ -74,9 +76,25 @@ class SemesterRepository:
             params.append(is_active)
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+        sort_map = {
+            "semester_number": "semester_number",
+            "name": "name",
+            "academic_year": "academic_year",
+            "start_date": "start_date",
+            "end_date": "end_date",
+            "is_active": "is_active",
+            "id": "id",
+        }
+        direction = "DESC" if str(order).upper() == "DESC" else "ASC"
+        if not sort_by or sort_by not in sort_map:
+            order_clause = "ORDER BY academic_year DESC, semester_number ASC"
+        else:
+            order_clause = f"ORDER BY {sort_map[sort_by]} {direction}"
+
         sql = f"""
             SELECT * FROM semesters
             {where_clause}
-            ORDER BY academic_year DESC, semester_number ASC
+            {order_clause}
         """
         return db.query_all(sql, tuple(params) if params else None)

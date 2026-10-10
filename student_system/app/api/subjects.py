@@ -13,11 +13,13 @@ subjects_bp = Blueprint("subjects", __name__, url_prefix="/api/v1/subjects")
 
 @subjects_bp.route("", methods=["GET"])
 def list_subjects():
-    """List subjects with filters for department and semester."""
+    """List subjects with filters for department, semester, and sorting."""
     department = request.args.get("department", "").strip() or None
     search = request.args.get("search", "").strip() or None
     sem_id_raw = request.args.get("semester_id")
     semester_id = int(sem_id_raw) if sem_id_raw and sem_id_raw.isdigit() else None
+    sort_by = request.args.get("sort_by", "").strip().lower() or None
+    order = request.args.get("order", "").strip().lower() or None
 
     page, per_page = parse_pagination(request.args.get("page"), request.args.get("per_page"))
 
@@ -25,6 +27,8 @@ def list_subjects():
         department=department,
         semester_id=semester_id,
         search=search,
+        sort_by=sort_by,
+        order=order,
         page=page,
         per_page=per_page,
     )

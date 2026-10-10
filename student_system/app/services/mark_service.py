@@ -194,6 +194,8 @@ class MarkService:
         subject_id: Optional[int] = None,
         semester_id: Optional[int] = None,
         exam_type: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
         page: int = 1,
         per_page: int = 50,
     ) -> Dict[str, Any]:
@@ -203,6 +205,8 @@ class MarkService:
             subject_id=subject_id,
             semester_id=semester_id,
             exam_type=exam_type,
+            sort_by=sort_by,
+            order=order,
             limit=per_page,
             offset=offset,
         )

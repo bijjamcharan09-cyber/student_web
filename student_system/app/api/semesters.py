@@ -12,7 +12,7 @@ semesters_bp = Blueprint("semesters", __name__, url_prefix="/api/v1/semesters")
 
 @semesters_bp.route("", methods=["GET"])
 def list_semesters():
-    """List all semesters, optionally filtered by academic year or active status."""
+    """List all semesters, optionally filtered by academic year, active status, and sorting."""
     academic_year = request.args.get("academic_year", "").strip() or None
     is_active_raw = request.args.get("is_active")
     is_active = (
@@ -20,8 +20,15 @@ def list_semesters():
         else False if is_active_raw in ("false", "False", "0")
         else None
     )
+    sort_by = request.args.get("sort_by", "").strip().lower() or None
+    order = request.args.get("order", "").strip().lower() or None
 
-    items = SemesterService.list_semesters(academic_year=academic_year, is_active=is_active)
+    items = SemesterService.list_semesters(
+        academic_year=academic_year,
+        is_active=is_active,
+        sort_by=sort_by,
+        order=order,
+    )
     return api_response(data=items, message="Semesters retrieved successfully")
 
 

@@ -114,6 +114,8 @@ class StudentService:
         search: Optional[str] = None,
         status: Optional[str] = None,
         semester_id: Optional[int] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
         page: int = 1,
         per_page: int = 10,
     ) -> Dict[str, Any]:
@@ -122,6 +124,8 @@ class StudentService:
             search=search,
             status=status,
             semester_id=semester_id,
+            sort_by=sort_by,
+            order=order,
             limit=per_page,
             offset=offset,
         )

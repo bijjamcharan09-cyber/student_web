@@ -15,7 +15,7 @@ attendance_bp = Blueprint("attendance", __name__, url_prefix="/api/v1/attendance
 
 @attendance_bp.route("", methods=["GET"])
 def list_attendance():
-    """List attendance records with filters."""
+    """List attendance records with filters and sorting."""
     def parse_int_param(param_name):
         val = request.args.get(param_name)
         return int(val) if val and val.isdigit() else None
@@ -25,6 +25,8 @@ def list_attendance():
     date_from = request.args.get("date_from", "").strip() or None
     date_to = request.args.get("date_to", "").strip() or None
     status = request.args.get("status", "").strip().capitalize() or None
+    sort_by = request.args.get("sort_by", "").strip().lower() or None
+    order = request.args.get("order", "").strip().lower() or None
 
     page, per_page = parse_pagination(request.args.get("page"), request.args.get("per_page"))
 
@@ -34,6 +36,8 @@ def list_attendance():
         date_from=date_from,
         date_to=date_to,
         status=status,
+        sort_by=sort_by,
+        order=order,
         page=page,
         per_page=per_page,
     )

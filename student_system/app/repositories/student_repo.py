@@ -84,6 +84,8 @@ class StudentRepository:
         search: Optional[str] = None,
         status: Optional[str] = None,
         semester_id: Optional[int] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
         limit: int = 10,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
@@ -107,6 +109,25 @@ class StudentRepository:
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
+        # Whitelist sorting fields
+        sort_map = {
+            "roll_number": "s.roll_number",
+            "name": "s.first_name",
+            "first_name": "s.first_name",
+            "last_name": "s.last_name",
+            "email": "s.email",
+            "semester": "sem.semester_number",
+            "status": "s.status",
+            "id": "s.id",
+        }
+        direction = "DESC" if str(order).upper() == "DESC" else "ASC"
+        if not sort_by or sort_by not in sort_map:
+            order_clause = "ORDER BY s.id DESC"
+        elif sort_by in ("name", "first_name"):
+            order_clause = f"ORDER BY s.first_name {direction}, s.last_name {direction}"
+        else:
+            order_clause = f"ORDER BY {sort_map[sort_by]} {direction}"
+
         sql = f"""
             SELECT s.*, 
                    sem.name AS current_semester_name,
@@ -114,7 +135,7 @@ class StudentRepository:
             FROM students s
             LEFT JOIN semesters sem ON s.current_semester_id = sem.id
             {where_clause}
-            ORDER BY s.id DESC
+            {order_clause}
             LIMIT %s OFFSET %s
         """
         params.extend([limit, offset])

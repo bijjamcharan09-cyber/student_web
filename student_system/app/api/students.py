@@ -13,11 +13,13 @@ students_bp = Blueprint("students", __name__, url_prefix="/api/v1/students")
 
 @students_bp.route("", methods=["GET"])
 def list_students():
-    """List students with search and filtering."""
+    """List students with search, filtering, and sorting."""
     search = request.args.get("search", "").strip() or None
     status = request.args.get("status", "").strip() or None
     sem_id_raw = request.args.get("semester_id")
     semester_id = int(sem_id_raw) if sem_id_raw and sem_id_raw.isdigit() else None
+    sort_by = request.args.get("sort_by", "").strip().lower() or None
+    order = request.args.get("order", "").strip().lower() or None
 
     page, per_page = parse_pagination(request.args.get("page"), request.args.get("per_page"))
 
@@ -25,6 +27,8 @@ def list_students():
         search=search,
         status=status,
         semester_id=semester_id,
+        sort_by=sort_by,
+        order=order,
         page=page,
         per_page=per_page,
     )

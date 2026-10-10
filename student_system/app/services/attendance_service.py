@@ -122,6 +122,8 @@ class AttendanceService:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         status: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
         page: int = 1,
         per_page: int = 50,
     ) -> Dict[str, Any]:
@@ -132,6 +134,8 @@ class AttendanceService:
             date_from=date_from,
             date_to=date_to,
             status=status,
+            sort_by=sort_by,
+            order=order,
             limit=per_page,
             offset=offset,
         )

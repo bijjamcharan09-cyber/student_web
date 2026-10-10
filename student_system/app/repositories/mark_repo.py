@@ -71,6 +71,8 @@ class MarkRepository:
         subject_id: Optional[int] = None,
         semester_id: Optional[int] = None,
         exam_type: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
@@ -95,6 +97,27 @@ class MarkRepository:
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
+        sort_map = {
+            "roll_number": "s.roll_number",
+            "student_name": "s.first_name",
+            "student": "s.roll_number",
+            "subject": "sub.name",
+            "subject_code": "sub.subject_code",
+            "marks_obtained": "m.marks_obtained",
+            "marks": "m.marks_obtained",
+            "percentage": "(m.marks_obtained / m.max_marks)",
+            "exam_type": "m.exam_type",
+            "semester": "m.semester_id",
+            "id": "m.id",
+        }
+        direction = "DESC" if str(order).upper() == "DESC" else "ASC"
+        if not sort_by or sort_by not in sort_map:
+            order_clause = "ORDER BY m.semester_id DESC, sub.subject_code ASC, m.exam_type ASC"
+        elif sort_by == "student_name":
+            order_clause = f"ORDER BY s.first_name {direction}, s.last_name {direction}"
+        else:
+            order_clause = f"ORDER BY {sort_map[sort_by]} {direction}"
+
         sql = f"""
             SELECT m.*,
                    s.roll_number, s.first_name, s.last_name,
@@ -105,7 +128,7 @@ class MarkRepository:
             JOIN subjects sub ON m.subject_id = sub.id
             JOIN semesters sem ON m.semester_id = sem.id
             {where_clause}
-            ORDER BY m.semester_id DESC, sub.subject_code ASC, m.exam_type ASC
+            {order_clause}
             LIMIT %s OFFSET %s
         """
         params.extend([limit, offset])

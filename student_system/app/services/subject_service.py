@@ -105,6 +105,8 @@ class SubjectService:
         department: Optional[str] = None,
         semester_id: Optional[int] = None,
         search: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
         page: int = 1,
         per_page: int = 20,
     ) -> Dict[str, Any]:
@@ -113,6 +115,8 @@ class SubjectService:
             department=department,
             semester_id=semester_id,
             search=search,
+            sort_by=sort_by,
+            order=order,
             limit=per_page,
             offset=offset,
         )

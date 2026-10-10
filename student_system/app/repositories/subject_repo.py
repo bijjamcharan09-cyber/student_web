@@ -57,6 +57,8 @@ class SubjectRepository:
         department: Optional[str] = None,
         semester_id: Optional[int] = None,
         search: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
@@ -77,12 +79,25 @@ class SubjectRepository:
             params.extend([search_param, search_param])
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
+
+        sort_map = {
+            "subject_code": "sub.subject_code",
+            "name": "sub.name",
+            "department": "sub.department",
+            "credits": "sub.credits",
+            "semester": "sem.semester_number",
+            "id": "sub.id",
+        }
+        direction = "DESC" if str(order).upper() == "DESC" else "ASC"
+        order_col = sort_map.get(sort_by, "sub.subject_code")
+        order_clause = f"ORDER BY {order_col} {direction}"
+
         sql = f"""
             SELECT sub.*, sem.name AS semester_name, sem.semester_number
             FROM subjects sub
             LEFT JOIN semesters sem ON sub.semester_id = sem.id
             {where_clause}
-            ORDER BY sub.subject_code ASC
+            {order_clause}
             LIMIT %s OFFSET %s
         """
         params.extend([limit, offset])

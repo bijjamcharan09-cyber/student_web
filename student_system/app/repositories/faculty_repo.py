@@ -42,13 +42,36 @@ class FacultyRepository:
         return db.query_one(sql, (email,))
 
     @staticmethod
-    def list_faculty(department: Optional[str] = None) -> List[Dict[str, Any]]:
+    def list_faculty(
+        department: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
         params = []
         where = ""
         if department:
             where = "WHERE department = %s"
             params.append(department)
-        sql = f"SELECT * FROM faculty {where} ORDER BY last_name ASC, first_name ASC"
+
+        sort_map = {
+            "faculty_code": "faculty_code",
+            "name": "first_name",
+            "first_name": "first_name",
+            "last_name": "last_name",
+            "department": "department",
+            "designation": "designation",
+            "email": "email",
+            "id": "id",
+        }
+        direction = "DESC" if str(order).upper() == "DESC" else "ASC"
+        if not sort_by or sort_by not in sort_map:
+            order_clause = "ORDER BY last_name ASC, first_name ASC"
+        elif sort_by in ("name", "first_name"):
+            order_clause = f"ORDER BY first_name {direction}, last_name {direction}"
+        else:
+            order_clause = f"ORDER BY {sort_map[sort_by]} {direction}"
+
+        sql = f"SELECT * FROM faculty {where} {order_clause}"
         return db.query_all(sql, tuple(params) if params else None)
 
     @staticmethod

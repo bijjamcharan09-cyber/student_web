@@ -65,6 +65,8 @@ class AttendanceRepository:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         status: Optional[str] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
         limit: int = 50,
         offset: int = 0,
     ) -> List[Dict[str, Any]]:
@@ -93,6 +95,24 @@ class AttendanceRepository:
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
 
+        sort_map = {
+            "date": "a.date",
+            "roll_number": "s.roll_number",
+            "student_name": "s.first_name",
+            "student": "s.roll_number",
+            "subject": "sub.name",
+            "subject_code": "sub.subject_code",
+            "status": "a.status",
+            "id": "a.id",
+        }
+        direction = "DESC" if str(order).upper() == "DESC" else "ASC"
+        if not sort_by or sort_by not in sort_map:
+            order_clause = "ORDER BY a.date DESC, a.id DESC"
+        elif sort_by == "student_name":
+            order_clause = f"ORDER BY s.first_name {direction}, s.last_name {direction}, a.date DESC"
+        else:
+            order_clause = f"ORDER BY {sort_map[sort_by]} {direction}, a.id DESC"
+
         sql = f"""
             SELECT a.*,
                    s.roll_number, s.first_name, s.last_name,
@@ -101,7 +121,7 @@ class AttendanceRepository:
             JOIN students s ON a.student_id = s.id
             JOIN subjects sub ON a.subject_id = sub.id
             {where_clause}
-            ORDER BY a.date DESC, a.id DESC
+            {order_clause}
             LIMIT %s OFFSET %s
         """
         params.extend([limit, offset])

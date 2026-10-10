@@ -16,9 +16,11 @@ faculty_bp = Blueprint("faculty", __name__, url_prefix="/api/v1/faculty")
 @faculty_bp.route("", methods=["GET"])
 @roles_required("Admin")
 def list_faculty():
-    """List all faculty members (Admin only)."""
+    """List all faculty members (Admin only) with filtering and sorting."""
     dept = request.args.get("department", "").strip() or None
-    items = FacultyRepository.list_faculty(department=dept)
+    sort_by = request.args.get("sort_by", "").strip().lower() or None
+    order = request.args.get("order", "").strip().lower() or None
+    items = FacultyRepository.list_faculty(department=dept, sort_by=sort_by, order=order)
     return api_response(data=items, message="Faculty members retrieved successfully.")
 
 

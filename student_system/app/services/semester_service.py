@@ -110,5 +110,15 @@ class SemesterService:
         return True
 
     @staticmethod
-    def list_semesters(academic_year: Optional[str] = None, is_active: Optional[bool] = None) -> List[Dict[str, Any]]:
-        return SemesterRepository.list_semesters(academic_year=academic_year, is_active=is_active)
+    def list_semesters(
+        academic_year: Optional[str] = None,
+        is_active: Optional[bool] = None,
+        sort_by: Optional[str] = None,
+        order: Optional[str] = None,
+    ) -> List[Dict[str, Any]]:
+        return SemesterRepository.list_semesters(
+            academic_year=academic_year,
+            is_active=is_active,
+            sort_by=sort_by,
+            order=order,
+        )
