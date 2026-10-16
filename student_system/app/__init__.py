@@ -18,6 +18,7 @@ from app.api import (
     auth_bp,
     faculty_bp,
     analytics_bp,
+    gps_attendance_bp,
 )
 
 
@@ -37,6 +38,7 @@ def create_app(config_name: str = "development") -> Flask:
     app.register_blueprint(reports_bp)
     app.register_blueprint(faculty_bp)
     app.register_blueprint(analytics_bp)
+    app.register_blueprint(gps_attendance_bp)
 
     # Health & System Status Endpoints
     @app.route("/", methods=["GET"])

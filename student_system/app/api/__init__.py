@@ -11,6 +11,7 @@ from app.api.reports import reports_bp
 from app.api.auth import auth_bp
 from app.api.faculty import faculty_bp
 from app.api.analytics import analytics_bp
+from app.api.gps_attendance import gps_attendance_bp
 
 __all__ = [
     "students_bp",
@@ -22,5 +23,6 @@ __all__ = [
     "auth_bp",
     "faculty_bp",
     "analytics_bp",
+    "gps_attendance_bp",
 ]
 

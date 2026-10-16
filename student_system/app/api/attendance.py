@@ -21,6 +21,10 @@ def list_attendance():
         return int(val) if val and val.isdigit() else None
 
     student_id = parse_int_param("student_id")
+    user = get_current_user()
+    if user and user.get("role") == "Student":
+        student_id = user.get("student_id")
+
     subject_id = parse_int_param("subject_id")
     date_from = request.args.get("date_from", "").strip() or None
     date_to = request.args.get("date_to", "").strip() or None

@@ -147,6 +147,20 @@
     .form-group input, .form-group select, .form-group textarea { width: 100%; }
     .form-actions { display: flex; justify-content: flex-end; gap: 8px; margin-top: 20px; }
 
+    /* GPS Attendance Styles */
+    .gps-panel { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 22px; box-shadow: var(--shadow); margin-bottom: 22px; }
+    .gps-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: 14px; margin-bottom: 16px; }
+    .gps-metric-card { background: #f8fafc; border: 1px solid var(--border); border-radius: 8px; padding: 14px; }
+    .gps-metric-label { font-size: 0.74rem; color: var(--text-muted); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+    .gps-metric-value { font-size: 0.95rem; font-weight: 700; color: var(--text); margin-top: 5px; }
+    .gps-indicator { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 9999px; font-size: 0.8rem; font-weight: 700; }
+    .gps-indicator-success { background: #dcfce7; color: #166534; }
+    .gps-indicator-danger { background: #fee2e2; color: #991b1b; }
+    .gps-indicator-warning { background: #fef3c7; color: #92400e; }
+    .gps-indicator-neutral { background: #e2e8f0; color: #475569; }
+    .session-card { background: var(--card-bg); border: 1px solid var(--border); border-radius: var(--radius); padding: 18px; margin-bottom: 14px; box-shadow: var(--shadow); }
+    .live-clock-badge { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace; font-size: 1.15rem; font-weight: 700; color: var(--primary); }
+
     /* Toast Notification */
     #toast {
       position: fixed; bottom: 24px; right: 24px; background: #1e293b; color: white; padding: 12px 20px;
@@ -468,48 +482,367 @@
 
     <!-- TAB 7: ATTENDANCE -->
     <div id="tab-attendance" class="tab-content">
-      <div class="toolbar">
-        <div class="filters">
-          <select id="attendanceStatusFilter" onchange="loadAttendance()">
-            <option value="">All Attendance</option>
-            <option value="Present">Present</option>
-            <option value="Absent">Absent</option>
-            <option value="Late">Late</option>
-            <option value="Excused">Excused</option>
-          </select>
-          <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-left: 6px;">Sort By:</label>
-          <select id="attendanceSortBy" onchange="loadAttendance()">
-            <option value="date">Date</option>
-            <option value="roll_number">Student Roll Number</option>
-            <option value="student_name">Student Name</option>
-            <option value="subject">Subject</option>
-            <option value="status">Status</option>
-            <option value="id">Recently Logged</option>
-          </select>
-          <select id="attendanceSortOrder" onchange="loadAttendance()">
-            <option value="desc">Descending (Latest / Z-A)</option>
-            <option value="asc">Ascending (Oldest / A-Z)</option>
-          </select>
+
+      <!-- ========================================== -->
+      <!-- 1. STUDENT ATTENDANCE SCREEN               -->
+      <!-- ========================================== -->
+      <div id="attendanceStudentView" style="display:none;">
+        <!-- Student Profile Banner & Live Digital Clock -->
+        <div class="gps-panel" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Student Profile</div>
+            <h3 id="studentAttName" style="color:var(--primary); margin-top:2px;">Student Profile</h3>
+            <div style="font-size:0.88rem; color:#475569; margin-top:4px;">
+              Roll Number: <strong id="studentAttRoll">--</strong> &bull;
+              Department: <strong id="studentAttDept">--</strong> &bull;
+              Semester: <strong id="studentAttSem">--</strong>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Live Campus Time (Authoritative)</div>
+            <div id="studentClockTime" class="live-clock-badge">--:--:-- --</div>
+            <div id="studentClockDate" style="font-size:0.82rem; color:var(--text-muted); margin-top:2px;">--</div>
+          </div>
         </div>
-        <button class="btn" id="addAttendanceBtn" onclick="document.getElementById('addAttendanceDialog').showModal()">+ Log Attendance</button>
+
+        <!-- Campus Geolocation & GPS Verification Card -->
+        <div class="gps-panel">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:14px; margin-bottom:16px;">
+            <div>
+              <h4 style="font-size:1.05rem; display:flex; align-items:center; gap:8px;">
+                <span>📍</span> Campus Geofence Verification
+              </h4>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+                Campus: <strong>Vijay Rural Engineering College (VREC)</strong> &bull; Nizamabad, Telangana, India
+              </div>
+              <div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">
+                Coordinates: 18.9972° N, 78.2497° E &bull; Geofence: <span id="studentGeofenceRadiusVal">150</span> m &bull; Max Accuracy: <span id="studentMaxAccuracyVal">50</span> m
+              </div>
+            </div>
+            <div>
+              <button id="studentGpsVerifyBtn" class="btn btn-secondary" onclick="requestStudentLocation()">
+                <span id="studentGpsSpinner" style="display:none;">⏳</span>
+                <span>📡 Acquire / Refresh GPS</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- Status Indicators Grid -->
+          <div class="gps-grid">
+            <div class="gps-metric-card">
+              <div class="gps-metric-label">Location Permission</div>
+              <div class="gps-metric-value">
+                <span id="studentPermStatusBadge" class="gps-indicator gps-indicator-neutral">Not Requested</span>
+              </div>
+            </div>
+            <div class="gps-metric-card">
+              <div class="gps-metric-label">Your Measured Coordinates</div>
+              <div id="studentMeasuredCoords" class="gps-metric-value" style="font-family:monospace; font-size:0.86rem;">
+                Not acquired yet
+              </div>
+            </div>
+            <div class="gps-metric-card">
+              <div class="gps-metric-label">Distance to Campus</div>
+              <div id="studentDistanceToCampus" class="gps-metric-value">--</div>
+            </div>
+            <div class="gps-metric-card">
+              <div class="gps-metric-label">Geofence Status</div>
+              <div class="gps-metric-value">
+                <span id="studentFenceStatusBadge" class="gps-indicator gps-indicator-neutral">Unverified</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Explanatory message box -->
+          <div id="studentGpsStatusAlert" style="display:none; padding:12px 16px; border-radius:6px; font-size:0.88rem; line-height:1.5;"></div>
+
+          <!-- Troubleshooting guide accordion -->
+          <div style="margin-top:12px;">
+            <button type="button" onclick="toggleGpsTroubleshooting('studentHelpBlock')" style="background:none; border:none; color:var(--primary); font-size:0.82rem; cursor:pointer; text-decoration:underline;">
+              ℹ️ How to enable high-accuracy location on Android, Chrome, or Safari
+            </button>
+            <div id="studentHelpBlock" style="display:none; margin-top:8px; background:#eff6ff; border:1px solid #bfdbfe; border-radius:6px; padding:12px 16px; font-size:0.82rem; color:#1e40af; line-height:1.5;">
+              <strong>Troubleshooting Location Permissions:</strong>
+              <ul style="margin-left:18px; margin-top:4px;">
+                <li><strong>Chrome / Android:</strong> Tap the padlock icon next to the URL &gt; <em>Permissions</em> &gt; <em>Location</em> &gt; <em>Allow</em>.</li>
+                <li><strong>Android System Settings:</strong> Go to <em>Settings &gt; Location</em> &gt; Turn ON &gt; Tap <em>Location Services &gt; Google Location Accuracy</em> and turn ON.</li>
+                <li><strong>Browser Context:</strong> Modern browsers only allow Geolocation over <strong>HTTPS</strong> or <code>localhost</code>.</li>
+                <li><strong>Timeout or weak signal:</strong> Step near a window or outdoors to acquire satellite GPS fix within 50m accuracy.</li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
+        <!-- Active Attendance Sessions Section -->
+        <div style="margin-bottom:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 style="font-size:1.05rem;">Active Attendance Sessions for My Courses</h4>
+            <button class="btn btn-secondary btn-sm" onclick="loadStudentActiveSessions()">🔄 Refresh Sessions</button>
+          </div>
+          <div id="studentActiveSessionsContainer">
+            <div style="background:var(--card-bg); padding:24px; border-radius:var(--radius); border:1px solid var(--border); text-align:center; color:var(--text-muted);">
+              Loading active sessions...
+            </div>
+          </div>
+        </div>
+
+        <!-- Student Attendance Summary & Standing -->
+        <div style="margin-bottom:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 style="font-size:1.05rem;">My Attendance Summary & Standing</h4>
+            <span id="studentOverallPctBadge" class="badge badge-active" style="font-size:0.85rem; padding:5px 12px;">Overall: --%</span>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Subject Code</th>
+                  <th>Course Name</th>
+                  <th>Total Sessions</th>
+                  <th>Present</th>
+                  <th>Absent</th>
+                  <th>Attendance Rate</th>
+                  <th>Standing</th>
+                </tr>
+              </thead>
+              <tbody id="studentSubjectSummaryTableBody">
+                <tr><td colspan="7" style="text-align:center; padding:16px;">Loading summary...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Student Recent Attendance Logs -->
+        <div style="margin-bottom:24px;">
+          <h4 style="font-size:1.05rem; margin-bottom:12px;">My Attendance Submission History</h4>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Subject</th>
+                  <th>Status</th>
+                  <th>GPS Verification</th>
+                  <th>Distance from Campus</th>
+                  <th>Recorded At</th>
+                </tr>
+              </thead>
+              <tbody id="studentHistoryTableBody">
+                <tr><td colspan="6" style="text-align:center; padding:16px;">Loading history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
-      <div class="table-container">
-        <table>
-          <thead>
-            <tr>
-              <th>Student</th>
-              <th>Subject</th>
-              <th>Date</th>
-              <th>Status</th>
-              <th>Remarks</th>
-              <th>Actions</th>
-            </tr>
-          </thead>
-          <tbody id="attendanceTableBody">
-            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading attendance...</td></tr>
-          </tbody>
-        </table>
+
+      <!-- ========================================== -->
+      <!-- 2. FACULTY ATTENDANCE SCREEN               -->
+      <!-- ========================================== -->
+      <div id="attendanceFacultyView" style="display:none;">
+        <!-- Faculty Header -->
+        <div class="gps-panel" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:16px;">
+          <div>
+            <div style="font-size:0.75rem; color:var(--text-muted); font-weight:700; text-transform:uppercase; letter-spacing:0.04em;">Faculty Attendance Console</div>
+            <h3 id="facAttName" style="color:var(--primary); margin-top:2px;">Faculty Profile</h3>
+            <div style="font-size:0.88rem; color:#475569; margin-top:4px;">
+              Faculty Code: <strong id="facAttCode">--</strong> &bull;
+              Department: <strong id="facAttDept">--</strong> &bull;
+              Designation: <strong id="facAttDesig">--</strong>
+            </div>
+          </div>
+          <div style="text-align:right;">
+            <div style="font-size:0.75rem; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Live Campus Time</div>
+            <div id="facultyClockTime" class="live-clock-badge">--:--:-- --</div>
+            <div id="facultyClockDate" style="font-size:0.82rem; color:var(--text-muted); margin-top:2px;">--</div>
+          </div>
+        </div>
+
+        <!-- Faculty Campus Location Verification Banner -->
+        <div class="gps-panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:14px;">
+            <div>
+              <h4 style="display:flex; align-items:center; gap:8px;">
+                <span>🏫</span> Faculty Campus Geofence Authorization
+              </h4>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:4px;">
+                Security Policy: <strong>Faculty must verify physical campus presence at VREC (≤ 150m) before initiating an attendance session.</strong>
+              </div>
+              <div id="facLocationStatusDisplay" style="font-size:0.88rem; font-weight:600; margin-top:6px; color:var(--text-muted);">
+                Campus status: Not yet verified
+              </div>
+            </div>
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+              <button id="facVerifyLocBtn" class="btn btn-secondary" onclick="requestFacultyLocation()">
+                <span id="facGpsSpinner" style="display:none;">⏳</span>
+                <span>📍 Verify My Location</span>
+              </button>
+              <button id="facStartSessionBtn" class="btn btn-success" onclick="openStartSessionModal()" disabled>
+                <span>⏱️ + Start Attendance Session</span>
+              </button>
+            </div>
+          </div>
+          <div id="facLocAlertBox" style="display:none; margin-top:12px; padding:10px 14px; border-radius:6px; font-size:0.88rem;"></div>
+        </div>
+
+        <!-- Faculty Sessions Management Table -->
+        <div style="margin-bottom:24px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 style="font-size:1.05rem;">My Attendance Sessions (Active & Past)</h4>
+            <button class="btn btn-secondary btn-sm" onclick="loadFacultySessions()">🔄 Refresh</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Subject Course</th>
+                  <th>Semester</th>
+                  <th>Date</th>
+                  <th>Session Window</th>
+                  <th>Status</th>
+                  <th>Students Present</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="facSessionsTableBody">
+                <tr><td colspan="7" style="text-align:center; padding:20px;">Loading sessions...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
       </div>
+
+      <!-- ========================================== -->
+      <!-- 3. ADMIN ATTENDANCE & CAMPUS CONFIG SCREEN -->
+      <!-- ========================================== -->
+      <div id="attendanceAdminView" style="display:none;">
+        <!-- Campus Geofence & Location Settings (Admin Only) -->
+        <div class="gps-panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:16px;">
+            <div>
+              <h4 style="font-size:1.1rem; color:var(--primary); display:flex; align-items:center; gap:8px;">
+                <span>⚙️</span> Campus Geofence & Location Configuration
+              </h4>
+              <div style="font-size:0.85rem; color:var(--text-muted); margin-top:2px;">
+                Centralized campus coordinates, geofence radius, and GPS accuracy threshold for Vijay Rural Engineering College.
+              </div>
+            </div>
+            <button class="btn btn-secondary btn-sm" onclick="loadAdminCampusConfig()">🔄 Reload Settings</button>
+          </div>
+
+          <form onsubmit="submitCampusSettings(event)">
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:14px; margin-bottom:14px;">
+              <div class="form-group">
+                <label>Institution / College Name *</label>
+                <input type="text" id="adminCampusName" name="campus_name" required>
+              </div>
+              <div class="form-group">
+                <label>Campus Location Label *</label>
+                <input type="text" id="adminCampusLocation" name="campus_location" required>
+              </div>
+              <div class="form-group">
+                <label>Campus Latitude (Decimal Degrees) *</label>
+                <input type="number" step="0.0000001" id="adminCampusLat" name="campus_latitude" required>
+              </div>
+              <div class="form-group">
+                <label>Campus Longitude (Decimal Degrees) *</label>
+                <input type="number" step="0.0000001" id="adminCampusLng" name="campus_longitude" required>
+              </div>
+              <div class="form-group">
+                <label>Geofence Radius (metres) *</label>
+                <input type="number" step="1" min="10" max="5000" id="adminGeofenceRadius" name="geofence_radius_m" required>
+              </div>
+              <div class="form-group">
+                <label>Max Acceptable GPS Accuracy (metres) *</label>
+                <input type="number" step="1" min="5" max="500" id="adminMaxAccuracy" name="max_gps_accuracy_m" required>
+              </div>
+              <div class="form-group">
+                <label>GPS Attendance Feature Switch *</label>
+                <select id="adminAttendanceEnabled" name="attendance_enabled">
+                  <option value="true">Active (Enabled)</option>
+                  <option value="false">Disabled (Suspended)</option>
+                </select>
+              </div>
+            </div>
+            <div style="display:flex; justify-content:flex-end;">
+              <button type="submit" class="btn btn-success">💾 Save Campus Settings</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- Institutional Sessions Oversight -->
+        <div class="gps-panel">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+            <h4 style="font-size:1.05rem;">Campus Attendance Sessions (All Departments)</h4>
+            <button class="btn btn-secondary btn-sm" onclick="loadAdminSessions()">🔄 Refresh</button>
+          </div>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Faculty</th>
+                  <th>Subject Course</th>
+                  <th>Semester</th>
+                  <th>Date</th>
+                  <th>Time Window</th>
+                  <th>Status</th>
+                  <th>Present Count</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="adminSessionsTableBody">
+                <tr><td colspan="9" style="text-align:center; padding:16px;">Loading sessions...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- Institutional Attendance Registry (Existing Table & Toolbar) -->
+        <h4 style="font-size:1.05rem; margin-bottom:12px;">Institutional Attendance Registry & Audit</h4>
+        <div class="toolbar">
+          <div class="filters">
+            <select id="attendanceStatusFilter" onchange="loadAttendance()">
+              <option value="">All Attendance</option>
+              <option value="Present">Present</option>
+              <option value="Absent">Absent</option>
+              <option value="Late">Late</option>
+              <option value="Excused">Excused</option>
+            </select>
+            <label style="font-size: 0.85rem; font-weight: 600; color: var(--text-muted); margin-left: 6px;">Sort By:</label>
+            <select id="attendanceSortBy" onchange="loadAttendance()">
+              <option value="date">Date</option>
+              <option value="roll_number">Student Roll Number</option>
+              <option value="student_name">Student Name</option>
+              <option value="subject">Subject</option>
+              <option value="status">Status</option>
+              <option value="id">Recently Logged</option>
+            </select>
+            <select id="attendanceSortOrder" onchange="loadAttendance()">
+              <option value="desc">Descending (Latest / Z-A)</option>
+              <option value="asc">Ascending (Oldest / A-Z)</option>
+            </select>
+          </div>
+          <button class="btn" id="addAttendanceBtn" onclick="document.getElementById('addAttendanceDialog').showModal()">+ Log Attendance</button>
+        </div>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Student</th>
+                <th>Subject</th>
+                <th>Date</th>
+                <th>Status</th>
+                <th>Remarks</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody id="attendanceTableBody">
+              <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading attendance...</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
     </div>
 
     <!-- TAB 8: USER MANAGEMENT (Admin Only) -->
@@ -856,6 +1189,116 @@
     </form>
   </dialog>
 
+  <!-- Faculty Start Attendance Session Dialog -->
+  <dialog id="startSessionDialog" style="max-width: 520px; width:95%;">
+    <div class="dialog-header">
+      <h3>Start Attendance Session</h3>
+      <button class="close-btn" onclick="document.getElementById('startSessionDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitCreateSession(event)">
+      <div class="form-group">
+        <label>Course Subject *</label>
+        <select id="startSessionSubjectSelect" name="subject_course" required></select>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Session Date *</label>
+          <input type="date" id="startSessionDateInput" name="session_date" required>
+        </div>
+        <div class="form-group">
+          <label>Preset Duration</label>
+          <select id="startSessionDurationPreset" onchange="applySessionDurationPreset()">
+            <option value="15">15 Minutes</option>
+            <option value="30">30 Minutes</option>
+            <option value="45" selected>45 Minutes</option>
+            <option value="60">60 Minutes</option>
+            <option value="90">90 Minutes</option>
+          </select>
+        </div>
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+        <div class="form-group">
+          <label>Start Time *</label>
+          <input type="time" id="startSessionStartTime" name="start_time" required onchange="applySessionDurationPreset()">
+        </div>
+        <div class="form-group">
+          <label>End Time *</label>
+          <input type="time" id="startSessionEndTime" name="end_time" required>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Notes / Period / Topic (Optional)</label>
+        <input type="text" id="startSessionNotes" name="notes" placeholder="e.g. Unit 3 Lecture / Lab Period 2">
+      </div>
+      <div style="background:#eff6ff; border-left:4px solid var(--primary); padding:10px 14px; border-radius:4px; font-size:0.83rem; color:#1e40af; margin-bottom:16px;">
+        📍 <strong>Campus Location Lock:</strong> Your verified GPS position (<span id="startSessionFacultyCoords">18.9972, 78.2497</span>) will be bound to authorize this session.
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('startSessionDialog').close()">Cancel</button>
+        <button type="submit" class="btn btn-success">🚀 Start Session</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Live Session Attendance Roster Dialog -->
+  <dialog id="sessionAttendanceDialog" style="max-width: 680px; width:95%;">
+    <div class="dialog-header">
+      <h3 id="sessionRosterTitle">Live Session Attendance Roster</h3>
+      <button class="close-btn" onclick="document.getElementById('sessionAttendanceDialog').close()">✕</button>
+    </div>
+    <div id="sessionRosterSubInfo" style="font-size:0.88rem; color:#475569; margin-bottom:14px;"></div>
+
+    <div style="display:flex; gap:10px; margin-bottom:12px; align-items:center;">
+      <button type="button" id="rosterTabPresentBtn" class="btn btn-sm btn-success" onclick="switchRosterTab('present')">
+        ✅ Present (<span id="rosterPresentCount">0</span>)
+      </button>
+      <button type="button" id="rosterTabAbsentBtn" class="btn btn-sm btn-secondary" onclick="switchRosterTab('absent')">
+        ❌ Absent / Unmarked (<span id="rosterAbsentCount">0</span>)
+      </button>
+      <button type="button" class="btn btn-sm btn-secondary" style="margin-left:auto;" onclick="refreshActiveSessionRoster()">
+        🔄 Refresh
+      </button>
+    </div>
+
+    <!-- Present Students Table -->
+    <div id="rosterPresentTableWrap" class="table-container" style="max-height:360px; overflow-y:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Roll Number</th>
+            <th>Student Name</th>
+            <th>Distance from VREC</th>
+            <th>GPS Accuracy</th>
+            <th>Verified Time</th>
+          </tr>
+        </thead>
+        <tbody id="rosterPresentTbody">
+          <tr><td colspan="5" style="text-align:center; padding:16px;">Loading present students...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Absent Students Table -->
+    <div id="rosterAbsentTableWrap" class="table-container" style="display:none; max-height:360px; overflow-y:auto;">
+      <table>
+        <thead>
+          <tr>
+            <th>Roll Number</th>
+            <th>Student Name</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody id="rosterAbsentTbody">
+          <tr><td colspan="3" style="text-align:center; padding:16px;">Loading absent students...</td></tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="form-actions" style="margin-top:16px;">
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('sessionAttendanceDialog').close()">Close</button>
+    </div>
+  </dialog>
+
   <!-- Confirmation Dialog for Deletions -->
   <dialog id="deleteConfirmDialog" style="max-width: 480px;">
     <div class="dialog-header">
@@ -1183,6 +1626,22 @@
       document.getElementById('tabBtnUsers').style.display = role === 'Admin' ? 'inline-block' : 'none';
       document.getElementById('tabBtnReports').style.display = 'inline-block';
 
+      // Tab label for Attendance
+      const tabAttBtn = document.getElementById('tabBtnAttendance');
+      if (tabAttBtn) {
+        if (role === 'Student') tabAttBtn.textContent = '📍 GPS Attendance';
+        else if (role === 'Faculty') tabAttBtn.textContent = '📍 Class Attendance';
+        else tabAttBtn.textContent = '📋 Attendance & GPS';
+      }
+
+      // Role-specific sub-views in Attendance tab
+      const stuView = document.getElementById('attendanceStudentView');
+      const facView = document.getElementById('attendanceFacultyView');
+      const admView = document.getElementById('attendanceAdminView');
+      if (stuView) stuView.style.display = (role === 'Student') ? 'block' : 'none';
+      if (facView) facView.style.display = (role === 'Faculty') ? 'block' : 'none';
+      if (admView) admView.style.display = (role === 'Admin') ? 'block' : 'none';
+
       // Role-specific action buttons
       document.getElementById('addStudentBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
       document.getElementById('addFacultyBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
@@ -1201,8 +1660,17 @@
 
       loadAnalytics();
       populateDropdowns();
-      if (role === 'Admin') loadUsers();
-      if (role === 'Student') loadStudentProfile();
+      if (role === 'Admin') {
+        loadUsers();
+        initAdminAttendanceUI();
+      }
+      if (role === 'Student') {
+        loadStudentProfile();
+        initStudentAttendanceUI(user);
+      }
+      if (role === 'Faculty') {
+        initFacultyAttendanceUI(user);
+      }
     }
 
     async function logout() {
@@ -1232,7 +1700,16 @@
       if (tabId === 'subjects') loadSubjects();
       if (tabId === 'semesters') loadSemesters();
       if (tabId === 'marks') loadMarks();
-      if (tabId === 'attendance') loadAttendance();
+      if (tabId === 'attendance') {
+        if (currentUser) {
+          if (currentUser.role === 'Student') initStudentAttendanceUI(currentUser);
+          else if (currentUser.role === 'Faculty') initFacultyAttendanceUI(currentUser);
+          else if (currentUser.role === 'Admin') {
+            initAdminAttendanceUI();
+            loadAttendance();
+          }
+        }
+      }
       if (tabId === 'users') loadUsers();
     }
 
@@ -1919,6 +2396,855 @@
         loadAttendance();
       } else {
         showToast(json.error ? json.error.message : 'Failed to log attendance', true);
+      }
+    }
+
+    // ==========================================
+    // GPS ATTENDANCE CLIENT STATE & METHODS
+    // ==========================================
+    let studentCoords = null;
+    let facultyCoords = null;
+    let liveClockTimer = null;
+    let currentRosterSessionId = null;
+    let currentRosterTab = 'present';
+
+    function startLiveClock() {
+      if (liveClockTimer) return;
+      function tick() {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('en-US', { hour12: true, hour: '2-digit', minute: '2-digit', second: '2-digit' });
+        const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+        const sTime = document.getElementById('studentClockTime');
+        const sDate = document.getElementById('studentClockDate');
+        const fTime = document.getElementById('facultyClockTime');
+        const fDate = document.getElementById('facultyClockDate');
+        if (sTime) sTime.textContent = timeStr;
+        if (sDate) sDate.textContent = dateStr;
+        if (fTime) fTime.textContent = timeStr;
+        if (fDate) fDate.textContent = dateStr;
+      }
+      tick();
+      liveClockTimer = setInterval(tick, 1000);
+    }
+
+    function toggleGpsTroubleshooting(elementId) {
+      const el = document.getElementById(elementId);
+      if (el) {
+        el.style.display = (el.style.display === 'none' || !el.style.display) ? 'block' : 'none';
+      }
+    }
+
+    function requestStudentLocation() {
+      const spinner = document.getElementById('studentGpsSpinner');
+      const btn = document.getElementById('studentGpsVerifyBtn');
+      const permBadge = document.getElementById('studentPermStatusBadge');
+      const alertBox = document.getElementById('studentGpsStatusAlert');
+      const coordsVal = document.getElementById('studentMeasuredCoords');
+      const distVal = document.getElementById('studentDistanceToCampus');
+      const fenceBadge = document.getElementById('studentFenceStatusBadge');
+
+      if (spinner) spinner.style.display = 'inline-block';
+      if (btn) btn.disabled = true;
+      if (permBadge) {
+        permBadge.textContent = 'Acquiring GPS...';
+        permBadge.className = 'gps-indicator gps-indicator-neutral';
+      }
+      if (alertBox) alertBox.style.display = 'none';
+
+      if (!navigator.geolocation) {
+        if (spinner) spinner.style.display = 'none';
+        if (btn) btn.disabled = false;
+        if (permBadge) {
+          permBadge.textContent = 'Unsupported';
+          permBadge.className = 'gps-indicator gps-indicator-danger';
+        }
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = '#fef2f2';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid #fecaca';
+          alertBox.innerHTML = '❌ <strong>Geolocation Error:</strong> Your browser does not support the Geolocation API.';
+        }
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+          studentCoords = { latitude: lat, longitude: lng, accuracy: accuracy };
+
+          if (permBadge) {
+            permBadge.textContent = 'Granted';
+            permBadge.className = 'gps-indicator gps-indicator-success';
+          }
+          if (coordsVal) {
+            coordsVal.textContent = `${lat.toFixed(5)}° N, ${lng.toFixed(5)}° E (±${Math.round(accuracy)}m)`;
+          }
+
+          try {
+            const res = await authFetch('/api/v1/gps-attendance/validate-location', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ latitude: lat, longitude: lng, accuracy: accuracy })
+            });
+            const json = await res.json();
+            const d = json.data || {};
+
+            if (distVal && d.distance_m !== undefined) {
+              distVal.textContent = `${d.distance_m} m`;
+            }
+
+            if (alertBox) {
+              alertBox.style.display = 'block';
+              if (d.ok && d.inside_fence && d.accuracy_ok) {
+                if (fenceBadge) {
+                  fenceBadge.textContent = 'Inside Campus (Verified)';
+                  fenceBadge.className = 'gps-indicator gps-indicator-success';
+                }
+                alertBox.style.background = '#f0fdf4';
+                alertBox.style.color = '#15803d';
+                alertBox.style.border = '1px solid #bbf7d0';
+                alertBox.innerHTML = `✅ <strong>Location Verified:</strong> You are <strong>${d.distance_m}m</strong> from VREC campus center (geofence radius: ${d.radius_m}m, accuracy: ±${Math.round(d.accuracy_m)}m). You are authorized to mark attendance.`;
+              } else {
+                if (fenceBadge) {
+                  fenceBadge.textContent = d.inside_fence ? 'Accuracy Too Low' : 'Outside Campus';
+                  fenceBadge.className = 'gps-indicator gps-indicator-danger';
+                }
+                alertBox.style.background = '#fef2f2';
+                alertBox.style.color = '#b91c1c';
+                alertBox.style.border = '1px solid #fecaca';
+                alertBox.innerHTML = `❌ <strong>Verification Notice:</strong> ${d.message || 'Measured position outside campus boundaries.'}`;
+              }
+            }
+          } catch (e) {
+            console.error('Validation error:', e);
+          } finally {
+            if (spinner) spinner.style.display = 'none';
+            if (btn) btn.disabled = false;
+          }
+        },
+        (err) => {
+          if (spinner) spinner.style.display = 'none';
+          if (btn) btn.disabled = false;
+          if (permBadge) {
+            permBadge.textContent = 'Denied / Error';
+            permBadge.className = 'gps-indicator gps-indicator-danger';
+          }
+          let msg = 'Unable to retrieve location.';
+          if (err.code === 1) msg = 'Location permission denied. Please allow location access in your browser or Android site settings.';
+          else if (err.code === 2) msg = 'GPS position unavailable. Please ensure device location is ON.';
+          else if (err.code === 3) msg = 'Location request timed out. Please retry near a window.';
+
+          if (alertBox) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = '#fef2f2';
+            alertBox.style.color = '#b91c1c';
+            alertBox.style.border = '1px solid #fecaca';
+            alertBox.innerHTML = `❌ <strong>Location Error:</strong> ${msg}`;
+          }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    function requestFacultyLocation() {
+      const spinner = document.getElementById('facGpsSpinner');
+      const btn = document.getElementById('facVerifyLocBtn');
+      const startBtn = document.getElementById('facStartSessionBtn');
+      const statusText = document.getElementById('facLocationStatusDisplay');
+      const alertBox = document.getElementById('facLocAlertBox');
+
+      if (spinner) spinner.style.display = 'inline-block';
+      if (btn) btn.disabled = true;
+      if (alertBox) alertBox.style.display = 'none';
+      if (statusText) statusText.textContent = 'Acquiring high-accuracy campus GPS...';
+
+      if (!navigator.geolocation) {
+        if (spinner) spinner.style.display = 'none';
+        if (btn) btn.disabled = false;
+        if (statusText) statusText.textContent = 'Geolocation not supported by browser';
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          const accuracy = position.coords.accuracy;
+          facultyCoords = { latitude: lat, longitude: lng, accuracy: accuracy };
+
+          try {
+            const res = await authFetch('/api/v1/gps-attendance/validate-location', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ latitude: lat, longitude: lng, accuracy: accuracy })
+            });
+            const json = await res.json();
+            const d = json.data || {};
+
+            if (alertBox) alertBox.style.display = 'block';
+
+            if (d.ok && d.inside_fence && d.accuracy_ok) {
+              if (statusText) {
+                statusText.style.color = '#15803d';
+                statusText.textContent = `✅ On Campus Verified: ${d.distance_m}m from VREC center (±${Math.round(d.accuracy_m)}m)`;
+              }
+              if (startBtn) startBtn.disabled = false;
+              if (alertBox) {
+                alertBox.style.background = '#f0fdf4';
+                alertBox.style.color = '#15803d';
+                alertBox.style.border = '1px solid #bbf7d0';
+                alertBox.innerHTML = `✅ <strong>Campus Presence Verified:</strong> You are <strong>${d.distance_m}m</strong> from VREC center (geofence radius: ${d.radius_m}m). Session creation is now unlocked.`;
+              }
+            } else {
+              if (statusText) {
+                statusText.style.color = '#b91c1c';
+                statusText.textContent = `❌ Off Campus (${d.distance_m || '?'}m, limit ${d.radius_m || 150}m)`;
+              }
+              if (startBtn) startBtn.disabled = true;
+              if (alertBox) {
+                alertBox.style.background = '#fef2f2';
+                alertBox.style.color = '#b91c1c';
+                alertBox.style.border = '1px solid #fecaca';
+                alertBox.innerHTML = `❌ <strong>Authorization Notice:</strong> ${d.message || 'Faculty must be physically on campus to create an attendance session.'}`;
+              }
+            }
+          } catch (e) {
+            console.error('Faculty location validation error:', e);
+          } finally {
+            if (spinner) spinner.style.display = 'none';
+            if (btn) btn.disabled = false;
+          }
+        },
+        (err) => {
+          if (spinner) spinner.style.display = 'none';
+          if (btn) btn.disabled = false;
+          if (startBtn) startBtn.disabled = true;
+          let msg = 'Failed to acquire location.';
+          if (err.code === 1) msg = 'Location permission was denied by browser or device.';
+          else if (err.code === 2) msg = 'GPS signal unavailable. Ensure location is enabled.';
+          else if (err.code === 3) msg = 'GPS request timed out.';
+
+          if (statusText) {
+            statusText.style.color = '#b91c1c';
+            statusText.textContent = '❌ Location error: ' + msg;
+          }
+          if (alertBox) {
+            alertBox.style.display = 'block';
+            alertBox.style.background = '#fef2f2';
+            alertBox.style.color = '#b91c1c';
+            alertBox.style.border = '1px solid #fecaca';
+            alertBox.innerHTML = `❌ <strong>GPS Error:</strong> ${msg}`;
+          }
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
+      );
+    }
+
+    async function initStudentAttendanceUI(user) {
+      startLiveClock();
+      const sName = document.getElementById('studentAttName');
+      const sRoll = document.getElementById('studentAttRoll');
+      const sDept = document.getElementById('studentAttDept');
+      const sSem = document.getElementById('studentAttSem');
+
+      const fullName = (user.student_first_name || '') + ' ' + (user.student_last_name || '');
+      if (sName) sName.textContent = fullName.trim() || user.username;
+      if (sRoll) sRoll.textContent = user.student_roll || '--';
+      if (sDept) sDept.textContent = user.student_department || '--';
+      if (sSem) sSem.textContent = user.student_semester ? `${user.student_semester.name || user.student_semester}` : '--';
+
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/config');
+        const json = await res.json();
+        if (json.success && json.data) {
+          const radEl = document.getElementById('studentGeofenceRadiusVal');
+          const accEl = document.getElementById('studentMaxAccuracyVal');
+          if (radEl) radEl.textContent = json.data.geofence_radius_m;
+          if (accEl) accEl.textContent = json.data.max_gps_accuracy_m;
+        }
+      } catch (e) {}
+
+      loadStudentActiveSessions();
+      loadStudentAttendanceSummary();
+      loadStudentRecentLogs();
+
+      if (!studentCoords) {
+        requestStudentLocation();
+      }
+    }
+
+    async function loadStudentActiveSessions() {
+      const container = document.getElementById('studentActiveSessionsContainer');
+      if (!container) return;
+      container.innerHTML = '<div style="background:var(--card-bg); padding:20px; border-radius:var(--radius); border:1px solid var(--border); text-align:center; color:var(--text-muted);">Loading active sessions...</div>';
+
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/student/sessions');
+        const json = await res.json();
+        if (!json.success || !json.data || !json.data.length) {
+          container.innerHTML = `
+            <div style="background:var(--card-bg); padding:24px; border-radius:var(--radius); border:1px solid var(--border); text-align:center; color:var(--text-muted);">
+              <div style="font-size:1.4rem; margin-bottom:6px;">📭</div>
+              <strong>No active attendance sessions currently running.</strong>
+              <div style="font-size:0.85rem; margin-top:4px;">Sessions are started by your course faculty when class begins on campus.</div>
+            </div>`;
+          return;
+        }
+
+        container.innerHTML = json.data.map(s => {
+          const facultyName = `${s.faculty_first_name || ''} ${s.faculty_last_name || ''}`.trim() || 'Faculty';
+          const timeWindow = `${s.start_time ? s.start_time.substring(11, 16) : ''} - ${s.end_time ? s.end_time.substring(11, 16) : ''}`;
+          const isMarked = s.already_marked;
+
+          return `
+            <div class="gps-panel" style="margin-bottom:12px; border-left: 4px solid ${isMarked ? 'var(--success)' : 'var(--primary)'};">
+              <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
+                <div>
+                  <div style="display:flex; align-items:center; gap:8px;">
+                    <span class="badge badge-active">${s.subject_code}</span>
+                    <h4 style="font-size:1.05rem; margin:0;">${s.subject_name}</h4>
+                  </div>
+                  <div style="font-size:0.86rem; color:var(--text-muted); margin-top:6px;">
+                    Faculty: <strong>${facultyName}</strong> &bull; Semester: <strong>${s.semester_name}</strong> &bull; Window: <strong>${timeWindow}</strong>
+                  </div>
+                  ${s.notes ? `<div style="font-size:0.82rem; color:#475569; margin-top:4px; font-style:italic;">Notes: ${s.notes}</div>` : ''}
+                </div>
+                <div>
+                  ${isMarked
+                    ? `<span class="badge badge-present" style="font-size:0.9rem; padding:8px 14px;">✅ Attendance Marked</span>`
+                    : `<button class="btn btn-primary" onclick="markStudentAttendance(${s.id})">📍 Mark Attendance</button>`
+                  }
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        container.innerHTML = '<div style="background:var(--card-bg); padding:16px; border-radius:var(--radius); color:#ef4444;">Failed to load active sessions.</div>';
+      }
+    }
+
+    async function markStudentAttendance(sessionId) {
+      if (!studentCoords) {
+        showToast('Please wait for GPS coordinates to be acquired...', true);
+        requestStudentLocation();
+        return;
+      }
+
+      showToast('Verifying campus geofence and recording attendance...');
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/mark', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            session_id: sessionId,
+            latitude: studentCoords.latitude,
+            longitude: studentCoords.longitude,
+            accuracy: studentCoords.accuracy
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          const dist = (json.data && json.data.geo && json.data.geo.distance_m !== undefined) ? `${json.data.geo.distance_m}m from VREC` : '';
+          showToast(`Attendance marked successfully! ${dist ? '(' + dist + ')' : ''}`);
+          loadStudentActiveSessions();
+          loadStudentAttendanceSummary();
+          loadStudentRecentLogs();
+        } else {
+          showToast(json.error ? json.error.message : 'Attendance marking failed', true);
+        }
+      } catch (e) {
+        showToast('Network error while marking attendance', true);
+      }
+    }
+
+    async function loadStudentAttendanceSummary() {
+      const tbody = document.getElementById('studentSubjectSummaryTableBody');
+      const overallBadge = document.getElementById('studentOverallPctBadge');
+      if (!tbody) return;
+
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/student/summary');
+        const json = await res.json();
+        if (!json.success || !json.data) return;
+
+        const d = json.data;
+        const overall = d.overall_summary || {};
+        const overallPct = overall.attendance_percentage !== undefined ? overall.attendance_percentage : (d.overall_percentage || 0);
+        const standing = overallPct >= 75 ? 'Good Standing' : (overallPct >= 65 ? 'Warning (Low)' : 'Critical Shortage');
+
+        if (overallBadge) {
+          overallBadge.textContent = `Overall: ${overallPct}% (${standing})`;
+          overallBadge.className = `badge ${overallPct >= 75 ? 'badge-present' : (overallPct >= 65 ? 'badge-late' : 'badge-absent')}`;
+        }
+
+        const subjects = d.by_subject || d.subject_breakdown || [];
+        if (!subjects.length) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:16px; color:var(--text-muted);">No attendance records found yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = subjects.map(s => {
+          const pct = s.attendance_percentage !== undefined ? s.attendance_percentage : (s.percentage || 0);
+          const badgeClass = pct >= 75 ? 'badge-present' : (pct >= 65 ? 'badge-late' : 'badge-absent');
+          const subStanding = pct >= 75 ? 'Satisfactory' : (pct >= 65 ? 'Borderline' : 'Shortage');
+          const present = s.present !== undefined ? s.present : (s.present_count || 0);
+          const absent = s.absent !== undefined ? s.absent : (s.absent_count || 0);
+          return `
+            <tr>
+              <td><strong>${s.subject_code}</strong></td>
+              <td>${s.subject_name}</td>
+              <td>${s.total_sessions}</td>
+              <td><span style="color:#15803d; font-weight:600;">${present}</span></td>
+              <td><span style="color:#b91c1c; font-weight:600;">${absent}</span></td>
+              <td><strong>${pct}%</strong></td>
+              <td><span class="badge ${badgeClass}">${s.standing || subStanding}</span></td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:16px; color:#ef4444;">Failed to load summary.</td></tr>';
+      }
+    }
+
+    async function loadStudentRecentLogs() {
+      const tbody = document.getElementById('studentHistoryTableBody');
+      if (!tbody) return;
+
+      try {
+        const res = await authFetch('/api/v1/attendance?sort_by=id&order=desc&per_page=15');
+        const json = await res.json();
+        if (!json.success || !json.data || !json.data.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:16px; color:var(--text-muted);">No attendance logged yet.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = json.data.map(a => {
+          const hasGps = a.distance_from_campus !== null && a.distance_from_campus !== undefined;
+          return `
+            <tr>
+              <td>${a.date}</td>
+              <td><strong>${a.subject_code ? a.subject_code + ' - ' + a.subject_name : '#' + a.subject_id}</strong></td>
+              <td><span class="badge badge-${(a.status || 'present').toLowerCase()}">${a.status}</span></td>
+              <td>
+                ${hasGps
+                  ? '<span class="gps-indicator gps-indicator-success" style="font-size:0.75rem;">📍 GPS Verified</span>'
+                  : '<span class="gps-indicator gps-indicator-neutral" style="font-size:0.75rem;">Manual Entry</span>'
+                }
+              </td>
+              <td>${hasGps ? a.distance_from_campus + ' m' : '--'}</td>
+              <td style="font-size:0.82rem; color:var(--text-muted);">${a.verified_at ? a.verified_at.substring(0, 19).replace('T', ' ') : (a.created_at || a.date)}</td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding:16px; color:#ef4444;">Failed to load history.</td></tr>';
+      }
+    }
+
+    async function initFacultyAttendanceUI(user) {
+      startLiveClock();
+      const fName = document.getElementById('facAttName');
+      const fCode = document.getElementById('facAttCode');
+      const fDept = document.getElementById('facAttDept');
+      const fDesig = document.getElementById('facAttDesig');
+
+      const fullName = (user.faculty_first_name || '') + ' ' + (user.faculty_last_name || '');
+      if (fName) fName.textContent = fullName.trim() || user.username;
+      if (fCode) fCode.textContent = user.faculty_code || '--';
+      if (fDept) fDept.textContent = user.faculty_department || '--';
+      if (fDesig) fDesig.textContent = user.faculty_designation || '--';
+
+      loadFacultySubjects();
+      loadFacultySessions();
+
+      if (!facultyCoords) {
+        requestFacultyLocation();
+      }
+    }
+
+    async function loadFacultySubjects() {
+      const select = document.getElementById('startSessionSubjectSelect');
+      if (!select) return;
+
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/faculty/subjects');
+        const json = await res.json();
+        if (json.success && json.data) {
+          if (!json.data.length) {
+            select.innerHTML = '<option value="">No subjects assigned</option>';
+            return;
+          }
+          select.innerHTML = json.data.map(s => `
+            <option value="${s.subject_id}|${s.semester_id}">${s.subject_code} - ${s.subject_name} (${s.semester_name})</option>
+          `).join('');
+        }
+      } catch (e) {
+        select.innerHTML = '<option value="">Error loading subjects</option>';
+      }
+    }
+
+    async function loadFacultySessions() {
+      const tbody = document.getElementById('facSessionsTableBody');
+      if (!tbody) return;
+
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/sessions?per_page=50');
+        const json = await res.json();
+        if (!json.success || !json.data || !json.data.length) {
+          tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">No attendance sessions created yet. Click "+ Start Attendance Session" to begin.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = json.data.map(s => {
+          const timeWindow = `${s.start_time ? s.start_time.substring(11, 16) : ''} - ${s.end_time ? s.end_time.substring(11, 16) : ''}`;
+          const isActive = !!s.is_active;
+
+          return `
+            <tr>
+              <td><strong>${s.subject_code} - ${s.subject_name}</strong></td>
+              <td>${s.semester_name || '#' + s.semester_id}</td>
+              <td>${s.session_date}</td>
+              <td>${timeWindow}</td>
+              <td>
+                <span class="badge ${isActive ? 'badge-present' : 'badge-inactive'}">
+                  ${isActive ? '🟢 Active' : '⚪ Closed'}
+                </span>
+              </td>
+              <td><strong>${s.present_count || 0}</strong></td>
+              <td>
+                <button class="btn btn-secondary btn-sm" onclick="openSessionRoster(${s.id}, '${s.subject_name.replace(/'/g, "\\'")}')">👥 Roster</button>
+                ${isActive ? `<button class="btn btn-danger btn-sm" onclick="closeSession(${s.id})">🛑 End</button>` : ''}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:#ef4444;">Failed to load sessions.</td></tr>';
+      }
+    }
+
+    function openStartSessionModal() {
+      if (!facultyCoords) {
+        showToast('Please verify your campus GPS location first.', true);
+        requestFacultyLocation();
+        return;
+      }
+
+      const coordsDisplay = document.getElementById('startSessionFacultyCoords');
+      if (coordsDisplay) {
+        coordsDisplay.textContent = `${facultyCoords.latitude.toFixed(5)}, ${facultyCoords.longitude.toFixed(5)} (±${Math.round(facultyCoords.accuracy)}m)`;
+      }
+
+      const today = new Date().toISOString().split('T')[0];
+      const now = new Date();
+      const hours = String(now.getHours()).padStart(2, '0');
+      const minutes = String(now.getMinutes()).padStart(2, '0');
+
+      document.getElementById('startSessionDateInput').value = today;
+      document.getElementById('startSessionStartTime').value = `${hours}:${minutes}`;
+      applySessionDurationPreset();
+
+      document.getElementById('startSessionDialog').showModal();
+    }
+
+    function applySessionDurationPreset() {
+      const startTimeInput = document.getElementById('startSessionStartTime');
+      const presetSelect = document.getElementById('startSessionDurationPreset');
+      const endTimeInput = document.getElementById('startSessionEndTime');
+      if (!startTimeInput || !presetSelect || !endTimeInput) return;
+
+      const startTimeVal = startTimeInput.value;
+      if (!startTimeVal) return;
+
+      const [hours, minutes] = startTimeVal.split(':').map(Number);
+      const duration = parseInt(presetSelect.value, 10) || 45;
+
+      const end = new Date();
+      end.setHours(hours, minutes + duration, 0, 0);
+
+      const endHours = String(end.getHours()).padStart(2, '0');
+      const endMins = String(end.getMinutes()).padStart(2, '0');
+      endTimeInput.value = `${endHours}:${endMins}`;
+    }
+
+    async function submitCreateSession(e) {
+      e.preventDefault();
+      if (!facultyCoords) {
+        showToast('Campus location required to start session.', true);
+        return;
+      }
+
+      const form = e.target;
+      const subjSelect = form.subject_course.value;
+      if (!subjSelect) {
+        showToast('Select a course subject.', true);
+        return;
+      }
+      const [subjectId, semesterId] = subjSelect.split('|');
+      const sessionDate = form.session_date.value;
+      const startTime = form.start_time.value;
+      const endTime = form.end_time.value;
+      const notes = form.notes ? form.notes.value.trim() : '';
+
+      const startIso = `${sessionDate}T${startTime}:00`;
+      const endIso = `${sessionDate}T${endTime}:00`;
+
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/sessions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            subject_id: parseInt(subjectId, 10),
+            semester_id: parseInt(semesterId, 10),
+            session_date: sessionDate,
+            start_time: startIso,
+            end_time: endIso,
+            notes: notes,
+            latitude: facultyCoords.latitude,
+            longitude: facultyCoords.longitude,
+            accuracy: facultyCoords.accuracy
+          })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Attendance session started successfully!');
+          document.getElementById('startSessionDialog').close();
+          form.reset();
+          loadFacultySessions();
+        } else {
+          showToast(json.error ? json.error.message : 'Failed to create session', true);
+        }
+      } catch (err) {
+        showToast('Network error creating session', true);
+      }
+    }
+
+    async function closeSession(sessionId) {
+      if (!confirm('Are you sure you want to end this attendance session now? Students will no longer be able to mark attendance.')) {
+        return;
+      }
+
+      try {
+        const res = await authFetch(`/api/v1/gps-attendance/sessions/${sessionId}/close`, {
+          method: 'POST'
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Attendance session ended.');
+          loadFacultySessions();
+          if (currentUser && currentUser.role === 'Admin') {
+            loadAdminSessions();
+          }
+        } else {
+          showToast(json.error ? json.error.message : 'Failed to close session', true);
+        }
+      } catch (e) {
+        showToast('Network error closing session', true);
+      }
+    }
+
+    function openSessionRoster(sessionId, subjectName) {
+      currentRosterSessionId = sessionId;
+      document.getElementById('sessionRosterTitle').textContent = `Session #${sessionId} — ${subjectName || 'Attendance Roster'}`;
+      document.getElementById('sessionAttendanceDialog').showModal();
+      switchRosterTab('present');
+      refreshActiveSessionRoster();
+    }
+
+    function switchRosterTab(tab) {
+      currentRosterTab = tab;
+      const presentWrap = document.getElementById('rosterPresentTableWrap');
+      const absentWrap = document.getElementById('rosterAbsentTableWrap');
+      const presentBtn = document.getElementById('rosterTabPresentBtn');
+      const absentBtn = document.getElementById('rosterTabAbsentBtn');
+
+      if (tab === 'present') {
+        if (presentWrap) presentWrap.style.display = 'block';
+        if (absentWrap) absentWrap.style.display = 'none';
+        if (presentBtn) presentBtn.className = 'btn btn-sm btn-success';
+        if (absentBtn) absentBtn.className = 'btn btn-sm btn-secondary';
+      } else {
+        if (presentWrap) presentWrap.style.display = 'none';
+        if (absentWrap) absentWrap.style.display = 'block';
+        if (presentBtn) presentBtn.className = 'btn btn-sm btn-secondary';
+        if (absentBtn) absentBtn.className = 'btn btn-sm btn-danger';
+      }
+    }
+
+    async function refreshActiveSessionRoster() {
+      if (!currentRosterSessionId) return;
+      const presentTbody = document.getElementById('rosterPresentTbody');
+      const absentTbody = document.getElementById('rosterAbsentTbody');
+      const subInfo = document.getElementById('sessionRosterSubInfo');
+      const pCountEl = document.getElementById('rosterPresentCount');
+      const aCountEl = document.getElementById('rosterAbsentCount');
+
+      if (presentTbody) presentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:16px;">Refreshing live roster...</td></tr>';
+      if (absentTbody) absentTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:16px;">Refreshing...</td></tr>';
+
+      try {
+        const res = await authFetch(`/api/v1/gps-attendance/sessions/${currentRosterSessionId}/attendance`);
+        const json = await res.json();
+        if (!json.success || !json.data) return;
+
+        const d = json.data;
+        const presentList = d.present || [];
+        const absentList = d.absent_or_not_marked || [];
+
+        if (pCountEl) pCountEl.textContent = presentList.length;
+        if (aCountEl) aCountEl.textContent = absentList.length;
+
+        if (subInfo && d.session) {
+          const sess = d.session;
+          subInfo.innerHTML = `
+            <strong>Course:</strong> ${sess.subject_code} - ${sess.subject_name} &bull;
+            <strong>Date:</strong> ${sess.session_date} &bull;
+            <strong>Status:</strong> ${sess.is_active ? '🟢 Open' : '⚪ Closed'} &bull;
+            <strong>Present Rate:</strong> ${d.total_enrolled ? Math.round((presentList.length / d.total_enrolled) * 100) : 0}% (${presentList.length}/${d.total_enrolled || presentList.length} enrolled)
+          `;
+        }
+
+        if (presentTbody) {
+          if (!presentList.length) {
+            presentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:16px; color:var(--text-muted);">No students have marked attendance yet.</td></tr>';
+          } else {
+            presentTbody.innerHTML = presentList.map(p => `
+              <tr>
+                <td><strong>${p.roll_number}</strong></td>
+                <td>${p.first_name} ${p.last_name || ''}</td>
+                <td><span style="color:#15803d; font-weight:600;">${p.distance_from_campus !== null ? p.distance_from_campus + ' m' : '--'}</span></td>
+                <td>${p.verified_accuracy !== null ? '±' + Math.round(p.verified_accuracy) + ' m' : '--'}</td>
+                <td style="font-size:0.82rem; color:var(--text-muted);">${p.verified_at ? p.verified_at.substring(11, 19) : '--'}</td>
+              </tr>
+            `).join('');
+          }
+        }
+
+        if (absentTbody) {
+          if (!absentList.length) {
+            absentTbody.innerHTML = '<tr><td colspan="3" style="text-align:center; padding:16px; color:#15803d;">🎉 All enrolled students have marked attendance!</td></tr>';
+          } else {
+            absentTbody.innerHTML = absentList.map(a => `
+              <tr>
+                <td><strong>${a.roll_number}</strong></td>
+                <td>${a.first_name} ${a.last_name || ''}</td>
+                <td><span class="badge badge-absent">Unmarked</span></td>
+              </tr>
+            `).join('');
+          }
+        }
+      } catch (err) {
+        if (presentTbody) presentTbody.innerHTML = '<tr><td colspan="5" style="text-align:center; padding:16px; color:#ef4444;">Failed to load roster.</td></tr>';
+      }
+    }
+
+    async function initAdminAttendanceUI() {
+      loadAdminCampusConfig();
+      loadAdminSessions();
+    }
+
+    async function loadAdminCampusConfig() {
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/config/all');
+        const json = await res.json();
+        if (json.success && json.data) {
+          const c = json.data;
+          const nameInput = document.getElementById('adminCampusName');
+          const locInput = document.getElementById('adminCampusLocation');
+          const latInput = document.getElementById('adminCampusLat');
+          const lngInput = document.getElementById('adminCampusLng');
+          const radInput = document.getElementById('adminGeofenceRadius');
+          const accInput = document.getElementById('adminMaxAccuracy');
+          const enSelect = document.getElementById('adminAttendanceEnabled');
+
+          if (nameInput) nameInput.value = c.campus_name || '';
+          if (locInput) locInput.value = c.campus_location || '';
+          if (latInput) latInput.value = c.campus_latitude || '';
+          if (lngInput) lngInput.value = c.campus_longitude || '';
+          if (radInput) radInput.value = c.geofence_radius_m || 150;
+          if (accInput) accInput.value = c.max_gps_accuracy_m || 50;
+          if (enSelect) enSelect.value = c.attendance_enabled ? 'true' : 'false';
+        }
+      } catch (e) {
+        console.error('Failed to load campus config:', e);
+      }
+    }
+
+    async function submitCampusSettings(e) {
+      e.preventDefault();
+      const form = e.target;
+      const payload = {
+        campus_name: form.campus_name.value.trim(),
+        campus_location: form.campus_location.value.trim(),
+        campus_latitude: parseFloat(form.campus_latitude.value),
+        campus_longitude: parseFloat(form.campus_longitude.value),
+        geofence_radius_m: parseFloat(form.geofence_radius_m.value),
+        max_gps_accuracy_m: parseFloat(form.max_gps_accuracy_m.value),
+        attendance_enabled: form.attendance_enabled.value === 'true'
+      };
+
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/config', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Campus GPS settings saved successfully!');
+          loadAdminCampusConfig();
+        } else {
+          showToast(json.error ? json.error.message : 'Failed to update campus settings', true);
+        }
+      } catch (err) {
+        showToast('Network error saving campus settings', true);
+      }
+    }
+
+    async function loadAdminSessions() {
+      const tbody = document.getElementById('adminSessionsTableBody');
+      if (!tbody) return;
+
+      try {
+        const res = await authFetch('/api/v1/gps-attendance/sessions?per_page=50');
+        const json = await res.json();
+        if (!json.success || !json.data || !json.data.length) {
+          tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:16px; color:var(--text-muted);">No attendance sessions logged.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = json.data.map(s => {
+          const facultyName = `${s.faculty_first_name || ''} ${s.faculty_last_name || ''}`.trim() || 'Faculty';
+          const timeWindow = `${s.start_time ? s.start_time.substring(11, 16) : ''} - ${s.end_time ? s.end_time.substring(11, 16) : ''}`;
+          const isActive = !!s.is_active;
+
+          return `
+            <tr>
+              <td><strong>#${s.id}</strong></td>
+              <td>${facultyName}</td>
+              <td><strong>${s.subject_code} - ${s.subject_name}</strong></td>
+              <td>${s.semester_name || '#' + s.semester_id}</td>
+              <td>${s.session_date}</td>
+              <td>${timeWindow}</td>
+              <td>
+                <span class="badge ${isActive ? 'badge-present' : 'badge-inactive'}">
+                  ${isActive ? '🟢 Active' : '⚪ Closed'}
+                </span>
+              </td>
+              <td><strong>${s.present_count || 0}</strong></td>
+              <td>
+                <button class="btn btn-secondary btn-sm" onclick="openSessionRoster(${s.id}, '${s.subject_name.replace(/'/g, "\\'")}')">👥 Roster</button>
+                ${isActive ? `<button class="btn btn-danger btn-sm" onclick="closeSession(${s.id})">🛑 End</button>` : ''}
+              </td>
+            </tr>
+          `;
+        }).join('');
+      } catch (e) {
+        tbody.innerHTML = '<tr><td colspan="9" style="text-align:center; padding:16px; color:#ef4444;">Failed to load sessions.</td></tr>';
       }
     }
 
