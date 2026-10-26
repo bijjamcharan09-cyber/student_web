@@ -15,6 +15,24 @@ from app.utils.exceptions import ForbiddenError, UnauthorizedError
 from app.utils.responses import error_response
 
 
+def is_safe_url(target: Optional[str]) -> bool:
+    """
+    Validate that target URL is a safe internal relative path to prevent Open Redirect attacks.
+    Must start with a single '/', cannot start with '//' or '/\\', cannot contain '\\' or scheme.
+    """
+    if not target or not isinstance(target, str):
+        return False
+    target = target.strip()
+    if not target.startswith("/"):
+        return False
+    if target.startswith("//") or target.startswith("/\\"):
+        return False
+    path_part = target.split("?")[0].split("#")[0]
+    if ":" in path_part or "\\" in target:
+        return False
+    return True
+
+
 def get_serializer() -> URLSafeTimedSerializer:
     """Return itsdangerous serializer configured with app secret key."""
     return URLSafeTimedSerializer(current_app.config["SECRET_KEY"], salt="sms-v2-auth-token")

@@ -162,11 +162,32 @@
     </form>
 
     <div class="footer-prompt">
-      Already have an account? <a href="/login">Login</a>
+      Already have an account? <a id="loginLink" href="/login">Login</a>
     </div>
   </div>
 
   <script>
+    function isSafeUrl(target) {
+      if (!target || typeof target !== 'string') return false;
+      target = target.trim();
+      if (!target.startsWith('/')) return false;
+      if (target.startsWith('//') || target.startsWith('/\\')) return false;
+      const pathPart = target.split('?')[0].split('#')[0];
+      if (pathPart.includes(':') || target.includes('\\')) return false;
+      return true;
+    }
+
+    window.addEventListener('DOMContentLoaded', () => {
+      const params = new URLSearchParams(window.location.search);
+      const nextParam = params.get('next');
+      if (nextParam && isSafeUrl(nextParam)) {
+        const link = document.getElementById('loginLink');
+        if (link) {
+          link.href = `/login?next=${encodeURIComponent(nextParam)}`;
+        }
+      }
+    });
+
     async function handleSignup(e) {
       e.preventDefault();
       const alertBox = document.getElementById('alertBox');
@@ -214,13 +235,17 @@
         const json = await res.json();
         if (json.success) {
           showAlert('Account created successfully! Redirecting to login...', 'success');
+          const params = new URLSearchParams(window.location.search);
+          const nextParam = params.get('next');
+          const safeNext = nextParam && isSafeUrl(nextParam) ? `&next=${encodeURIComponent(nextParam)}` : '';
+
           setTimeout(() => {
             if (window.location.protocol === 'file:' || window.location.pathname.endsWith('.html')) {
-              window.location.href = 'login.html?registered=1';
+              window.location.href = `login.html?registered=1${safeNext}`;
             } else {
-              window.location.href = '/login?registered=1';
+              window.location.href = `/login?registered=1${safeNext}`;
             }
-          }, 1000);
+          }, 800);
         } else {
           showAlert(json.error ? json.error.message : 'Registration failed. Please check your information.', 'danger');
           submitBtn.disabled = false;

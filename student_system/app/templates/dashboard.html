@@ -32,6 +32,59 @@
     .role-admin { background: #fee2e2; color: #991b1b; }
     .role-faculty { background: #e0e7ff; color: #3730a3; }
     .role-student { background: #dcfce7; color: #166534; }
+    .role-guest { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    /* Guest Auth Prompt Modal */
+    dialog.guest-modal {
+      border: none;
+      border-radius: 14px;
+      padding: 0;
+      box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.08);
+      max-width: 440px;
+      width: 90%;
+      margin: auto;
+      background: #ffffff;
+      overflow: hidden;
+    }
+    dialog.guest-modal::backdrop {
+      background: rgba(15, 23, 42, 0.55);
+      backdrop-filter: blur(3px);
+    }
+    .guest-modal-content {
+      padding: 24px;
+    }
+    .guest-modal-header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 14px;
+    }
+    .guest-modal-icon {
+      width: 44px;
+      height: 44px;
+      border-radius: 10px;
+      background: #e0e7ff;
+      color: var(--primary);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .guest-modal-close {
+      background: transparent;
+      border: none;
+      font-size: 1.5rem;
+      line-height: 1;
+      color: var(--text-muted);
+      cursor: pointer;
+      padding: 4px 8px;
+      border-radius: 6px;
+      transition: all 0.2s;
+    }
+    .guest-modal-close:hover {
+      color: var(--text);
+      background: #f1f5f9;
+    }
 
     /* Main Container */
     .container { max-width: 1280px; margin: 24px auto; padding: 0 20px; }
@@ -188,6 +241,8 @@
       <div class="auth-bar">
         <span id="userStatusText" style="font-size: 0.88rem; color: #475569;">Verifying session...</span>
         <span id="userRoleBadge" class="role-badge role-admin">Role</span>
+        <a id="headerSignInBtn" href="/login" class="btn btn-primary btn-sm" style="display:none; text-decoration:none;">Sign In</a>
+        <a id="headerSignUpBtn" href="/signup" class="btn btn-secondary btn-sm" style="display:none; text-decoration:none;">Sign Up</a>
         <button id="logoutBtn" class="btn btn-secondary btn-sm" onclick="logout()">Log Out</button>
       </div>
     </div>
@@ -259,6 +314,148 @@
           </div>
         </div>
       </div>
+
+      <!-- Guest Dashboard View (displayed when browsing as guest) -->
+      <div id="guestDashboardArea" style="display:none;">
+        <!-- Welcome Hero Banner -->
+        <div class="guest-hero-card" style="background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%); color: white; border-radius: 12px; padding: 32px 28px; margin-bottom: 24px; box-shadow: var(--shadow);">
+          <div style="max-width: 800px;">
+            <div style="display: inline-flex; align-items: center; gap: 8px; background: rgba(255, 255, 255, 0.2); padding: 4px 12px; border-radius: 9999px; font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; letter-spacing: 0.03em;">
+              <span>🏫</span> Vijay Rural Engineering College Portal
+            </div>
+            <h2 style="font-size: 1.85rem; font-weight: 800; line-height: 1.25; margin-bottom: 10px;">
+              Welcome to the Student Management System
+            </h2>
+            <p style="font-size: 1rem; line-height: 1.6; opacity: 0.95; margin-bottom: 20px;">
+              You are currently browsing in <strong>Guest Mode</strong>. You can freely explore our public course catalog, academic terms, and campus facilities. Sign in to check your grades, check in to classes with GPS attendance, or access faculty and administrative controls.
+            </p>
+            <div style="display: flex; flex-wrap: wrap; gap: 12px;">
+              <a href="/login?next=/dashboard" class="btn" style="background: #ffffff; color: #3730a3; font-weight: 700; padding: 10px 20px; font-size: 0.95rem; border-radius: 8px;">
+                Sign In to Your Account
+              </a>
+              <a href="/signup?next=/dashboard" class="btn" style="background: rgba(255, 255, 255, 0.15); color: #ffffff; border: 1px solid rgba(255, 255, 255, 0.35); font-weight: 600; padding: 10px 20px; font-size: 0.95rem; border-radius: 8px;">
+                Create Student Account
+              </a>
+              <button type="button" class="btn" onclick="switchTab('subjects')" style="background: transparent; color: #ffffff; text-decoration: underline; padding: 10px 14px; font-size: 0.95rem;">
+                Explore Course Catalog &rarr;
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Feature Highlights Grid -->
+        <h3 style="font-size: 1.2rem; font-weight: 700; margin-bottom: 16px; color: var(--text);">Explore Campus Features &amp; Modules</h3>
+        <div class="guest-feature-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 18px; margin-bottom: 28px;">
+
+          <!-- Card 1: Subjects (Public) -->
+          <div class="stat-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #4f46e5;">
+            <div>
+              <div style="font-size: 1.6rem; margin-bottom: 8px;">📚</div>
+              <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Course Catalog &amp; Subjects</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                Browse the complete curriculum of undergraduate and diploma courses, credit allocations, and departmental subjects.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);">
+              <span class="badge badge-active" style="font-size: 0.75rem;">Publicly Available</span>
+              <button class="btn btn-secondary btn-sm" onclick="switchTab('subjects')">Browse Courses &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Card 2: Semesters (Public) -->
+          <div class="stat-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #06b6d4;">
+            <div>
+              <div style="font-size: 1.6rem; margin-bottom: 8px;">🗓️</div>
+              <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Academic Terms &amp; Semesters</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                View current academic terms, semester start and completion dates, term sequencing, and academic schedules.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);">
+              <span class="badge badge-active" style="font-size: 0.75rem;">Publicly Available</span>
+              <button class="btn btn-secondary btn-sm" onclick="switchTab('semesters')">View Terms &rarr;</button>
+            </div>
+          </div>
+
+          <!-- Card 3: GPS Attendance (Protected) -->
+          <div class="stat-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #10b981;">
+            <div>
+              <div style="font-size: 1.6rem; margin-bottom: 8px;">📍</div>
+              <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">GPS Attendance Portal</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                Geofence-verified student attendance check-ins within the 150m radius of Vijay Rural Engineering College, Nizamabad.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">🔒 Sign-In Required</span>
+              <button class="btn btn-primary btn-sm" onclick="openAuthModal({ action: 'GPS Attendance', message: 'Please sign in to access attendance features and manage your academic activities.', nextUrl: '/dashboard#attendance' })">Mark Attendance</button>
+            </div>
+          </div>
+
+          <!-- Card 4: Marks & Grades (Protected) -->
+          <div class="stat-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #f59e0b;">
+            <div>
+              <div style="font-size: 1.6rem; margin-bottom: 8px;">📝</div>
+              <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Grades &amp; Academic Marks</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                Students can view individual semester marks, GPA calculations, and assessment feedback securely.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">🔒 Sign-In Required</span>
+              <button class="btn btn-secondary btn-sm" onclick="openAuthModal({ action: 'Academic Marks', message: 'Please sign in to view your academic results and grade reports.', nextUrl: '/dashboard#marks' })">View Results</button>
+            </div>
+          </div>
+
+          <!-- Card 5: Student Profiles (Protected) -->
+          <div class="stat-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #8b5cf6;">
+            <div>
+              <div style="font-size: 1.6rem; margin-bottom: 8px;">🎓</div>
+              <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Student Management</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                Faculty and staff manage student enrollments, departmental records, roll allocations, and academic standings.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">🔒 Sign-In Required</span>
+              <button class="btn btn-secondary btn-sm" onclick="openAuthModal({ action: 'Student Records', message: 'Please sign in with an authorized account to access student records.', nextUrl: '/dashboard#students' })">Access Portal</button>
+            </div>
+          </div>
+
+          <!-- Card 6: Reports & Exports (Protected) -->
+          <div class="stat-card" style="display: flex; flex-direction: column; justify-content: space-between; border-top: 4px solid #ec4899;">
+            <div>
+              <div style="font-size: 1.6rem; margin-bottom: 8px;">📑</div>
+              <h4 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 6px;">Reports &amp; PDF Exports</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); line-height: 1.5; margin-bottom: 16px;">
+                Generate official transcripts, semester grade sheets, and attendance summary reports.
+              </p>
+            </div>
+            <div style="display: flex; align-items: center; justify-content: space-between; margin-top: auto; padding-top: 12px; border-top: 1px solid var(--border);">
+              <span style="font-size: 0.75rem; color: var(--text-muted); font-weight: 600;">🔒 Sign-In Required</span>
+              <button class="btn btn-secondary btn-sm" onclick="openAuthModal({ action: 'Reports & Exports', message: 'Please sign in to generate and export academic reports.', nextUrl: '/dashboard#reports' })">Generate Reports</button>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- Campus Details Card -->
+        <div class="stat-card" style="background: #ffffff; border: 1px solid var(--border); padding: 20px 24px; border-radius: var(--radius);">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px;">
+            <div>
+              <div style="font-size: 0.78rem; font-weight: 700; text-transform: uppercase; color: var(--primary); letter-spacing: 0.05em;">Campus Details</div>
+              <h4 style="font-size: 1.15rem; font-weight: 700; margin-top: 4px;">Vijay Rural Engineering College (VREC)</h4>
+              <p style="font-size: 0.88rem; color: var(--text-muted); margin-top: 2px;">
+                Nizamabad, Telangana, India &bull; Geofence Coordinates: 18.9972° N, 78.2497° E &bull; Radius: 150m
+              </p>
+            </div>
+            <div style="display: flex; gap: 10px;">
+              <a href="/login" class="btn btn-primary btn-sm">Sign In</a>
+              <a href="/signup" class="btn btn-secondary btn-sm">Student Registration</a>
+            </div>
+          </div>
+        </div>
+      </div>
     </div>
 
     <!-- TAB: MY PROFILE (Student Only) -->
@@ -294,7 +491,7 @@
             <option value="desc">Descending (Z-A, 9-1)</option>
           </select>
         </div>
-        <button class="btn" id="addStudentBtn" onclick="document.getElementById('addStudentDialog').showModal()">+ Add Student</button>
+        <button class="btn" id="addStudentBtn" onclick="triggerAddStudent()">+ Add Student</button>
       </div>
 
       <div class="table-container">
@@ -335,7 +532,7 @@
             <option value="desc">Descending</option>
           </select>
         </div>
-        <button class="btn" id="addFacultyBtn" onclick="document.getElementById('addFacultyDialog').showModal()">+ Add Faculty</button>
+        <button class="btn" id="addFacultyBtn" onclick="triggerAddFaculty()">+ Add Faculty</button>
       </div>
 
       <div class="table-container">
@@ -377,7 +574,7 @@
             <option value="desc">Descending</option>
           </select>
         </div>
-        <button class="btn" id="addSubjectBtn" onclick="document.getElementById('addSubjectDialog').showModal()">+ Add Subject</button>
+        <button class="btn" id="addSubjectBtn" onclick="triggerAddSubject()">+ Add Subject</button>
       </div>
       <div class="table-container">
         <table>
@@ -416,7 +613,7 @@
             <option value="desc">Descending</option>
           </select>
         </div>
-        <button class="btn" id="addSemesterBtn" onclick="document.getElementById('addSemesterDialog').showModal()">+ Add Semester</button>
+        <button class="btn" id="addSemesterBtn" onclick="triggerAddSemester()">+ Add Semester</button>
       </div>
       <div class="table-container">
         <table>
@@ -457,7 +654,7 @@
             <option value="desc" selected>Descending</option>
           </select>
         </div>
-        <button class="btn" id="addMarkBtn" onclick="document.getElementById('addMarkDialog').showModal()">+ Add Marks</button>
+        <button class="btn" id="addMarkBtn" onclick="triggerAddMark()">+ Add Marks</button>
       </div>
       <div class="table-container">
         <table>
@@ -822,7 +1019,7 @@
               <option value="asc">Ascending (Oldest / A-Z)</option>
             </select>
           </div>
-          <button class="btn" id="addAttendanceBtn" onclick="document.getElementById('addAttendanceDialog').showModal()">+ Log Attendance</button>
+          <button class="btn" id="addAttendanceBtn" onclick="triggerAddAttendance()">+ Log Attendance</button>
         </div>
         <div class="table-container">
           <table>
@@ -840,6 +1037,32 @@
               <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading attendance...</td></tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      <!-- ========================================== -->
+      <!-- 4. GUEST ATTENDANCE SCREEN                 -->
+      <!-- ========================================== -->
+      <div id="attendanceGuestView" style="display:none;">
+        <div class="stat-card" style="max-width: 800px; margin: 0 auto; padding: 32px; text-align: center;">
+          <div style="font-size: 2.8rem; margin-bottom: 12px;">📍</div>
+          <h3 style="font-size: 1.45rem; font-weight: 700; color: #0f172a; margin-bottom: 8px;">
+            GPS Attendance System
+          </h3>
+          <p style="font-size: 0.95rem; color: var(--text-muted); max-width: 620px; margin: 0 auto 20px auto; line-height: 1.6;">
+            Vijay Rural Engineering College utilizes geofenced GPS verification for class attendance. Students within the verified 150m perimeter of the Nizamabad campus can sign in to mark their live attendance.
+          </p>
+          <div style="display: inline-flex; align-items: center; gap: 8px; background: #f1f5f9; padding: 6px 14px; border-radius: 9999px; font-size: 0.82rem; font-weight: 600; color: #475569; margin-bottom: 24px;">
+            <span>📍</span> Campus Coordinates: 18.9972° N, 78.2497° E &bull; 150m Geofence
+          </div>
+          <div style="display: flex; justify-content: center; gap: 12px; flex-wrap: wrap;">
+            <button type="button" class="btn btn-primary" onclick="openAuthModal({ action: 'Mark Attendance', message: 'Please sign in to access attendance features and manage your academic activities.', nextUrl: '/dashboard#attendance' })">
+              Sign In to Mark Attendance
+            </button>
+            <a href="/signup?next=/dashboard%23attendance" class="btn btn-secondary">
+              Create Student Account
+            </a>
+          </div>
         </div>
       </div>
 
@@ -1551,6 +1774,41 @@
     </form>
   </dialog>
 
+  <!-- Reusable Guest Auth Prompt Modal (Flipkart-style sign-in prompt) -->
+  <dialog id="guestAuthPromptDialog" class="guest-modal" aria-labelledby="guestAuthPromptTitle" aria-describedby="guestAuthPromptMsg">
+    <div class="guest-modal-content">
+      <div class="guest-modal-header">
+        <div class="guest-modal-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 2a5 5 0 0 0-5 5v3H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8a2 2 0 0 0-2-2h-1V7a5 5 0 0 0-5-5z"></path>
+            <circle cx="12" cy="15" r="2"></circle>
+          </svg>
+        </div>
+        <div style="flex:1;">
+          <h3 id="guestAuthPromptTitle" style="font-size:1.2rem; font-weight:700; color:#0f172a; margin:0;">Sign in to continue</h3>
+          <p id="guestAuthPromptAction" style="font-size:0.8rem; color:#64748b; margin-top:2px; font-weight:600; text-transform:uppercase; letter-spacing:0.04em;"></p>
+        </div>
+        <button type="button" class="guest-modal-close" onclick="closeAuthModal()" aria-label="Close dialog">&times;</button>
+      </div>
+      <div class="guest-modal-body">
+        <p id="guestAuthPromptMsg" style="font-size:0.95rem; line-height:1.55; color:#334155; margin-bottom:20px;">
+          Please sign in to access this feature and manage your academic activities.
+        </p>
+        <div class="guest-modal-actions" style="display:flex; flex-direction:column; gap:10px;">
+          <a id="guestModalSignInBtn" href="/login" class="btn btn-primary" style="justify-content:center; padding:10px 16px; font-size:0.95rem; text-decoration:none;">
+            Sign In
+          </a>
+          <a id="guestModalSignUpBtn" href="/signup" class="btn btn-secondary" style="justify-content:center; padding:10px 16px; font-size:0.95rem; border:1px solid var(--border); text-decoration:none;">
+            Create Student Account
+          </a>
+          <button type="button" class="btn btn-secondary" onclick="closeAuthModal()" style="justify-content:center; background:transparent; color:#64748b; border:none; padding:8px; font-size:0.9rem;">
+            Continue Browsing
+          </button>
+        </div>
+      </div>
+    </div>
+  </dialog>
+
   <div id="toast">Message</div>
 
   <script>
@@ -1577,21 +1835,221 @@
         : `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
     }
 
+    function isSafeUrl(target) {
+      if (!target || typeof target !== 'string') return false;
+      target = target.trim();
+      if (!target.startsWith('/')) return false;
+      if (target.startsWith('//') || target.startsWith('/\\')) return false;
+      const pathPart = target.split('?')[0].split('#')[0];
+      if (pathPart.includes(':') || target.includes('\\')) return false;
+      return true;
+    }
+
+    let lastActiveElementBeforeModal = null;
+
+    function openAuthModal({ title = 'Sign in to continue', message, action = '', nextUrl = '' } = {}) {
+      const dialog = document.getElementById('guestAuthPromptDialog');
+      if (!dialog) return;
+
+      lastActiveElementBeforeModal = document.activeElement;
+
+      document.getElementById('guestAuthPromptTitle').textContent = title;
+      const actionElem = document.getElementById('guestAuthPromptAction');
+      if (action) {
+        actionElem.textContent = action;
+        actionElem.style.display = 'block';
+      } else {
+        actionElem.style.display = 'none';
+      }
+
+      document.getElementById('guestAuthPromptMsg').textContent = message || 'Please sign in to access this feature and manage your academic activities.';
+
+      let targetNext = nextUrl || (window.location.pathname + window.location.search + window.location.hash);
+      if (!isSafeUrl(targetNext)) {
+        targetNext = '/dashboard';
+      }
+
+      const signInBtn = document.getElementById('guestModalSignInBtn');
+      signInBtn.href = `/login?next=${encodeURIComponent(targetNext)}`;
+
+      const signUpBtn = document.getElementById('guestModalSignUpBtn');
+      signUpBtn.href = `/signup?next=${encodeURIComponent(targetNext)}`;
+
+      if (typeof dialog.showModal === 'function') {
+        dialog.showModal();
+      } else {
+        dialog.setAttribute('open', '');
+      }
+    }
+
+    function closeAuthModal() {
+      const dialog = document.getElementById('guestAuthPromptDialog');
+      if (!dialog) return;
+      if (typeof dialog.close === 'function') {
+        dialog.close();
+      } else {
+        dialog.removeAttribute('open');
+      }
+      if (lastActiveElementBeforeModal && typeof lastActiveElementBeforeModal.focus === 'function') {
+        lastActiveElementBeforeModal.focus();
+      }
+    }
+
+    function triggerAddStudent() {
+      if (!currentUser) {
+        openAuthModal({ action: 'Manage Students', message: 'Please sign in with an authorized administrator account to add student records.', nextUrl: '/dashboard#students' });
+      } else {
+        document.getElementById('addStudentDialog').showModal();
+      }
+    }
+
+    function triggerAddFaculty() {
+      if (!currentUser) {
+        openAuthModal({ action: 'Faculty Dashboard', message: 'Please sign in with an authorized administrator account to add faculty records.', nextUrl: '/dashboard#faculty' });
+      } else {
+        document.getElementById('addFacultyDialog').showModal();
+      }
+    }
+
+    function triggerAddSubject() {
+      if (!currentUser) {
+        openAuthModal({ action: 'Manage Subjects', message: 'Please sign in with an authorized administrator account to add subjects.', nextUrl: '/dashboard#subjects' });
+      } else {
+        document.getElementById('addSubjectDialog').showModal();
+      }
+    }
+
+    function triggerAddSemester() {
+      if (!currentUser) {
+        openAuthModal({ action: 'Manage Semesters', message: 'Please sign in with an authorized administrator account to add semesters.', nextUrl: '/dashboard#semesters' });
+      } else {
+        document.getElementById('addSemesterDialog').showModal();
+      }
+    }
+
+    function triggerAddMark() {
+      if (!currentUser) {
+        openAuthModal({ action: 'Academic Marks', message: 'Please sign in with an authorized account to record marks.', nextUrl: '/dashboard#marks' });
+      } else {
+        document.getElementById('addMarkDialog').showModal();
+      }
+    }
+
+    function triggerAddAttendance() {
+      if (!currentUser) {
+        openAuthModal({ action: 'Attendance Features', message: 'Please sign in with an authorized account to log attendance.', nextUrl: '/dashboard#attendance' });
+      } else {
+        document.getElementById('addAttendanceDialog').showModal();
+      }
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      const dialog = document.getElementById('guestAuthPromptDialog');
+      if (dialog) {
+        dialog.addEventListener('click', (e) => {
+          const rect = dialog.getBoundingClientRect();
+          const isInDialog = (
+            rect.top <= e.clientY && e.clientY <= rect.top + rect.height &&
+            rect.left <= e.clientX && e.clientX <= rect.left + rect.width
+          );
+          if (!isInDialog) {
+            closeAuthModal();
+          }
+        });
+      }
+    });
+
     // Initialize session check
     async function checkAuthSession() {
       try {
         const res = await authFetch('/api/v1/auth/me');
         const json = await res.json();
-        if (json.success) {
+        if (json.success && json.data) {
           currentUser = json.data;
           updateAuthUI(currentUser);
         } else {
-          // Redirect unauthenticated visitors to login
-          redirectToLogin();
+          // Open in Guest Mode without redirecting to login
+          initGuestMode();
         }
       } catch (e) {
-        redirectToLogin();
+        initGuestMode();
       }
+    }
+
+    function initGuestMode() {
+      currentUser = null;
+
+      document.getElementById('userStatusText').textContent = 'Browsing as Guest';
+      const badge = document.getElementById('userRoleBadge');
+      badge.textContent = 'Guest Mode';
+      badge.className = 'role-badge role-guest';
+
+      document.getElementById('logoutBtn').style.display = 'none';
+      const signInBtn = document.getElementById('headerSignInBtn');
+      if (signInBtn) signInBtn.style.display = 'inline-flex';
+      const signUpBtn = document.getElementById('headerSignUpBtn');
+      if (signUpBtn) signUpBtn.style.display = 'inline-flex';
+
+      // Navigation tab adjustments for Guest Mode
+      document.getElementById('tabBtnAnalytics').textContent = '📊 Portal Overview';
+      document.getElementById('tabBtnProfile').style.display = 'none';
+      document.getElementById('tabBtnStudents').style.display = 'inline-block';
+      document.getElementById('tabBtnFaculty').style.display = 'inline-block';
+      document.getElementById('tabBtnSubjects').style.display = 'inline-block';
+      document.getElementById('tabBtnSemesters').style.display = 'inline-block';
+      document.getElementById('tabBtnMarks').style.display = 'inline-block';
+      document.getElementById('tabBtnAttendance').style.display = 'inline-block';
+      document.getElementById('tabBtnAttendance').textContent = '📍 GPS Attendance';
+      document.getElementById('tabBtnUsers').style.display = 'none';
+      document.getElementById('tabBtnReports').style.display = 'inline-block';
+
+      // Hide or gate mutation buttons
+      document.getElementById('addStudentBtn').style.display = 'none';
+      document.getElementById('addFacultyBtn').style.display = 'none';
+      document.getElementById('addSubjectBtn').style.display = 'none';
+      document.getElementById('addSemesterBtn').style.display = 'none';
+      document.getElementById('addMarkBtn').style.display = 'none';
+      document.getElementById('addAttendanceBtn').style.display = 'none';
+
+      // Sub-views in attendance tab
+      const stuView = document.getElementById('attendanceStudentView');
+      const facView = document.getElementById('attendanceFacultyView');
+      const admView = document.getElementById('attendanceAdminView');
+      const gstView = document.getElementById('attendanceGuestView');
+      if (stuView) stuView.style.display = 'none';
+      if (facView) facView.style.display = 'none';
+      if (admView) admView.style.display = 'none';
+      if (gstView) gstView.style.display = 'block';
+
+      // Render Guest Dashboard view
+      renderGuestDashboard();
+      populateDropdowns();
+
+      // Check URL hash for direct public tabs like #subjects or #semesters
+      const hash = window.location.hash.replace('#', '');
+      if (hash === 'subjects' || hash === 'semesters') {
+        switchTab(hash);
+      }
+    }
+
+    function renderGuestDashboard() {
+      const kpiGrid = document.getElementById('analyticsKpiGrid');
+      const contentArea = document.getElementById('analyticsContentArea');
+      const guestArea = document.getElementById('guestDashboardArea');
+      if (kpiGrid) kpiGrid.style.display = 'none';
+      if (contentArea) contentArea.style.display = 'none';
+      if (guestArea) guestArea.style.display = 'block';
+    }
+
+    function renderGuestAttendanceView() {
+      const stuView = document.getElementById('attendanceStudentView');
+      const facView = document.getElementById('attendanceFacultyView');
+      const admView = document.getElementById('attendanceAdminView');
+      const gstView = document.getElementById('attendanceGuestView');
+      if (stuView) stuView.style.display = 'none';
+      if (facView) facView.style.display = 'none';
+      if (admView) admView.style.display = 'none';
+      if (gstView) gstView.style.display = 'block';
     }
 
     function redirectToLogin() {
@@ -1603,6 +2061,22 @@
     }
 
     function updateAuthUI(user) {
+      const kpiGrid = document.getElementById('analyticsKpiGrid');
+      const contentArea = document.getElementById('analyticsContentArea');
+      const guestArea = document.getElementById('guestDashboardArea');
+      if (kpiGrid) kpiGrid.style.display = 'grid';
+      if (contentArea) contentArea.style.display = 'block';
+      if (guestArea) guestArea.style.display = 'none';
+
+      const signInBtn = document.getElementById('headerSignInBtn');
+      if (signInBtn) signInBtn.style.display = 'none';
+      const signUpBtn = document.getElementById('headerSignUpBtn');
+      if (signUpBtn) signUpBtn.style.display = 'none';
+      document.getElementById('logoutBtn').style.display = 'inline-flex';
+
+      const gstView = document.getElementById('attendanceGuestView');
+      if (gstView) gstView.style.display = 'none';
+
       const displayName = user.student_first_name 
         ? `${user.student_first_name} ${user.student_last_name || ''}` 
         : (user.faculty_first_name ? `${user.faculty_first_name} ${user.faculty_last_name || ''}` : user.username);
@@ -1680,20 +2154,91 @@
       localStorage.removeItem('sms_auth_token');
       authToken = '';
       currentUser = null;
-      redirectToLogin();
+      showToast('Logged out successfully. You are now browsing in Guest Mode.');
+      initGuestMode();
+      switchTab('analytics');
     }
 
     // Tab switcher
     function switchTab(tabId) {
+      if (!currentUser) {
+        if (tabId === 'attendance') {
+          openAuthModal({
+            title: 'Sign in to continue',
+            action: 'Attendance Features',
+            message: 'Please sign in to access attendance features and manage your academic activities.',
+            nextUrl: '/dashboard#attendance'
+          });
+          return;
+        }
+        if (tabId === 'marks') {
+          openAuthModal({
+            title: 'Sign in to continue',
+            action: 'View Marks & Results',
+            message: 'Please sign in to view your academic results and grade reports.',
+            nextUrl: '/dashboard#marks'
+          });
+          return;
+        }
+        if (tabId === 'students') {
+          openAuthModal({
+            title: 'Sign in to continue',
+            action: 'Manage Students',
+            message: 'Please sign in with an authorized account to access student records.',
+            nextUrl: '/dashboard#students'
+          });
+          return;
+        }
+        if (tabId === 'faculty') {
+          openAuthModal({
+            title: 'Sign in to continue',
+            action: 'Faculty Dashboard',
+            message: 'Please sign in with an authorized administrator account to view faculty records.',
+            nextUrl: '/dashboard#faculty'
+          });
+          return;
+        }
+        if (tabId === 'profile') {
+          openAuthModal({
+            title: 'Sign in to continue',
+            action: 'Student Profile',
+            message: 'Please sign in to access your student profile.',
+            nextUrl: '/dashboard#profile'
+          });
+          return;
+        }
+        if (tabId === 'users') {
+          openAuthModal({
+            title: 'Sign in to continue',
+            action: 'User Management',
+            message: 'Please sign in with an authorized administrator account to access user management.',
+            nextUrl: '/dashboard#users'
+          });
+          return;
+        }
+        if (tabId === 'reports') {
+          openAuthModal({
+            title: 'Sign in to continue',
+            action: 'Academic Reports',
+            message: 'Please sign in to generate and export academic reports.',
+            nextUrl: '/dashboard#reports'
+          });
+          return;
+        }
+      }
+
       document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
       document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
       
-      const activeBtn = event ? event.currentTarget : document.getElementById(`tabBtn${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
+      const activeBtn = document.getElementById(`tabBtn${tabId.charAt(0).toUpperCase() + tabId.slice(1)}`);
       if (activeBtn) activeBtn.classList.add('active');
       const targetDiv = document.getElementById('tab-' + tabId);
       if (targetDiv) targetDiv.classList.add('active');
 
-      if (tabId === 'analytics') loadAnalytics();
+      if (tabId === 'analytics') {
+        if (currentUser) loadAnalytics();
+        else renderGuestDashboard();
+      }
       if (tabId === 'profile') loadStudentProfile();
       if (tabId === 'students') loadStudents();
       if (tabId === 'faculty') loadFaculty();
@@ -1708,6 +2253,8 @@
             initAdminAttendanceUI();
             loadAttendance();
           }
+        } else {
+          renderGuestAttendanceView();
         }
       }
       if (tabId === 'users') loadUsers();
@@ -1904,19 +2451,36 @@
     // Populate dropdown lists for forms and reports
     async function populateDropdowns() {
       try {
-        const [stuRes, subRes, semRes] = await Promise.all([
-          authFetch('/api/v1/students?per_page=100'),
+        const promises = [
           authFetch('/api/v1/subjects?per_page=100'),
           authFetch('/api/v1/semesters')
-        ]);
-        const stu = (await stuRes.json()).data || [];
+        ];
+        if (currentUser) {
+          promises.unshift(authFetch('/api/v1/students?per_page=100'));
+        }
+
+        const responses = await Promise.all(promises);
+        let stu = [];
+        let subRes, semRes;
+
+        if (currentUser) {
+          stu = (await responses[0].json()).data || [];
+          subRes = responses[1];
+          semRes = responses[2];
+        } else {
+          subRes = responses[0];
+          semRes = responses[1];
+        }
+
         const sub = (await subRes.json()).data || [];
         const sem = (await semRes.json()).data || [];
 
-        const stuOpts = stu.map(s => `<option value="${s.id}">${s.roll_number} - ${s.first_name} ${s.last_name}</option>`).join('');
-        if (document.getElementById('markStudentSelect')) document.getElementById('markStudentSelect').innerHTML = stuOpts;
-        if (document.getElementById('attStudentSelect')) document.getElementById('attStudentSelect').innerHTML = stuOpts;
-        if (document.getElementById('exportStudentSelect')) document.getElementById('exportStudentSelect').innerHTML = stuOpts;
+        if (currentUser) {
+          const stuOpts = stu.map(s => `<option value="${s.id}">${s.roll_number} - ${s.first_name} ${s.last_name}</option>`).join('');
+          if (document.getElementById('markStudentSelect')) document.getElementById('markStudentSelect').innerHTML = stuOpts;
+          if (document.getElementById('attStudentSelect')) document.getElementById('attStudentSelect').innerHTML = stuOpts;
+          if (document.getElementById('exportStudentSelect')) document.getElementById('exportStudentSelect').innerHTML = stuOpts;
+        }
 
         const subOpts = sub.map(s => `<option value="${s.id}">${s.subject_code} - ${s.name}</option>`).join('');
         if (document.getElementById('markSubjectSelect')) document.getElementById('markSubjectSelect').innerHTML = subOpts;
@@ -3254,6 +3818,10 @@
     let pendingDelete = { type: null, id: null, label: '' };
 
     function confirmDelete(type, id, label) {
+      if (!currentUser) {
+        openAuthModal({ action: 'Delete Record', message: 'Please sign in with an authorized account to delete records.', nextUrl: window.location.pathname });
+        return;
+      }
       pendingDelete = { type, id, label };
       document.getElementById('deleteConfirmTitle').textContent = `Delete ${type.charAt(0).toUpperCase() + type.slice(1)}`;
       document.getElementById('deleteConfirmMessage').innerHTML = `Are you sure you want to delete <strong>${label}</strong>?`;
@@ -3430,6 +3998,10 @@
 
     // 3. Subject Edit
     async function openEditSubjectModal(id) {
+      if (!currentUser) {
+        openAuthModal({ action: 'Manage Subjects', message: 'Please sign in with an authorized administrator account to edit subjects.', nextUrl: '/dashboard#subjects' });
+        return;
+      }
       try {
         const [subRes, semRes] = await Promise.all([
           authFetch(`/api/v1/subjects/${id}`),
@@ -3492,6 +4064,10 @@
 
     // 4. Semester Edit
     async function openEditSemesterModal(id) {
+      if (!currentUser) {
+        openAuthModal({ action: 'Manage Semesters', message: 'Please sign in with an authorized administrator account to edit semesters.', nextUrl: '/dashboard#semesters' });
+        return;
+      }
       try {
         const res = await authFetch(`/api/v1/semesters/${id}`);
         const json = await res.json();
@@ -3699,6 +4275,15 @@
 
     // REPORTS EXPORTS
     function exportAcademic(format) {
+      if (!currentUser) {
+        openAuthModal({
+          title: 'Sign in to continue',
+          action: 'Academic Reports',
+          message: 'Please sign in to generate and download academic reports.',
+          nextUrl: '/dashboard#reports'
+        });
+        return;
+      }
       const stuId = document.getElementById('exportStudentSelect').value;
       if (!stuId) { showToast('Select a student first', true); return; }
       if (format === 'json') {
@@ -3711,18 +4296,45 @@
     }
 
     function exportSubject(format) {
+      if (!currentUser) {
+        openAuthModal({
+          title: 'Sign in to continue',
+          action: 'Academic Reports',
+          message: 'Please sign in to generate and download academic reports.',
+          nextUrl: '/dashboard#reports'
+        });
+        return;
+      }
       const subId = document.getElementById('exportSubjectSelect').value;
       if (!subId) { showToast('Select a subject first', true); return; }
       downloadReport(`/api/v1/reports/subject/${subId}?format=${format}`, `subject_${subId}_report.${format}`);
     }
 
     function exportSemester(format) {
+      if (!currentUser) {
+        openAuthModal({
+          title: 'Sign in to continue',
+          action: 'Academic Reports',
+          message: 'Please sign in to generate and download academic reports.',
+          nextUrl: '/dashboard#reports'
+        });
+        return;
+      }
       const semId = document.getElementById('exportSemesterSelect').value;
       if (!semId) { showToast('Select a semester first', true); return; }
       downloadReport(`/api/v1/reports/semester/${semId}?format=${format}`, `semester_${semId}_report.${format}`);
     }
 
     async function downloadReport(url, filename) {
+      if (!currentUser) {
+        openAuthModal({
+          title: 'Sign in to continue',
+          action: 'Academic Reports',
+          message: 'Please sign in to generate and download academic reports.',
+          nextUrl: '/dashboard#reports'
+        });
+        return;
+      }
       showToast('Preparing download...');
       try {
         const res = await authFetch(url);

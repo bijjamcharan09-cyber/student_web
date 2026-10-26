@@ -4,7 +4,7 @@ Authentication API Blueprint for login, logout, profile checks, and account regi
 
 from flask import Blueprint, g, request, session
 from app.services.auth_service import AuthService
-from app.utils.auth import get_current_user, login_required, roles_required
+from app.utils.auth import get_current_user, is_safe_url, login_required, roles_required
 from app.utils.responses import api_response
 
 auth_bp = Blueprint("auth", __name__, url_prefix="/api/v1/auth")
@@ -16,6 +16,7 @@ def login():
     payload = request.get_json(silent=True) or {}
     username = payload.get("username", "").strip()
     password = payload.get("password", "").strip()
+    next_url = payload.get("next") or request.args.get("next")
 
     result = AuthService.authenticate(username, password)
     user = result["user"]
@@ -25,8 +26,10 @@ def login():
     session["user_id"] = user["id"]
     session["role"] = user["role"]
 
+    redirect_url = next_url if is_safe_url(next_url) else "/dashboard"
+
     return api_response(
-        data={"user": user, "token": token},
+        data={"user": user, "token": token, "redirect_url": redirect_url},
         message=f"Welcome {user['username']}! Logged in successfully.",
     )
 
