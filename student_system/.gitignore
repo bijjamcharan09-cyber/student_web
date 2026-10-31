@@ -56,5 +56,10 @@ Desktop.ini
 # Tests Files
 tests/
 
-# certificate files
-certificates/
+# Certificate files: exclude secrets and keys, include public CA root certificate
+certificates/*
+!certificates/isrgrootx1.pem
+*.key
+*.pfx
+*.p12
+

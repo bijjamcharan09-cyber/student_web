@@ -29,6 +29,11 @@ def create_app(config_name: str = "development") -> Flask:
     config_class = config_by_name.get(config_name, config_by_name["default"])
     app.config.from_object(config_class)
 
+    # In production (e.g. Render), trust 1 upstream reverse proxy for forwarded HTTPS and IP headers
+    if config_name == "production":
+        from werkzeug.middleware.proxy_fix import ProxyFix
+        app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
     # Register Blueprints
     app.register_blueprint(auth_bp)
     app.register_blueprint(students_bp)
