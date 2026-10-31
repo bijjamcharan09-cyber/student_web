@@ -1,5 +1,5 @@
 """
-Authentication service handling user verification, password hashing, and user creation.
+Authentication service handling user verification, password hashing, and user creation with multi-organisation scoping.
 """
 
 from datetime import datetime
@@ -11,12 +11,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from app.repositories.user_repo import UserRepository
 from app.repositories.student_repo import StudentRepository
 from app.repositories.faculty_repo import FacultyRepository
+from app.repositories.organisation_repo import OrganisationRepository
 from app.utils.auth import generate_auth_token
 from app.utils.exceptions import ConflictError, ForbiddenError, NotFoundError, UnauthorizedError, ValidationError
 
 
 class AuthService:
-    """Service handling credential verification and admin-only registration."""
+    """Service handling credential verification, multi-organisation user management, and registration."""
 
     @staticmethod
     def authenticate(username_or_email: str, password: str) -> Dict[str, Any]:
@@ -47,13 +48,29 @@ class AuthService:
         }
 
     @staticmethod
-    def register_user(data: Dict[str, Any], requested_by_role: str = "Admin") -> Dict[str, Any]:
+    def register_user(
+        data: Dict[str, Any],
+        requested_by_role: str = "Admin",
+        requested_by_user: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
         """
-        Register a new user account with strict Admin-only authorization.
-        Can create Student, Faculty, or Admin accounts.
+        Register a new user account with strict Admin and Organisation role checks.
+        - Admin / Super Admin: Can create Admin, Organisation, Faculty, or Student across organisations.
+        - Organisation: Can create Student, Faculty, or Organisation accounts ONLY within their own organisation.
+          Cannot create or promote to Admin/Super Admin.
         """
-        if requested_by_role != "Admin":
-            raise ForbiddenError("Access denied: Only administrators can register new user accounts.")
+        norm_requested_role = str(requested_by_role).strip().title()
+        if norm_requested_role not in ("Admin", "Super Admin", "Organisation", "Organization"):
+            raise ForbiddenError("Access denied: Only administrators or organisation managers can register new accounts.")
+
+        # Determine target organisation_id
+        if norm_requested_role in ("Organisation", "Organization"):
+            if not requested_by_user:
+                raise ForbiddenError("Authentication context missing for organisation manager.")
+            org_id = int(requested_by_user.get("organisation_id") or 1)
+        else:
+            # Admin can specify organisation_id or default to 1
+            org_id = int(data.get("organisation_id") or 1)
 
         # Parse name fields
         raw_name = str(data.get("name", "")).strip()
@@ -67,7 +84,21 @@ class AuthService:
 
         email = str(data.get("email", "")).strip().lower()
         password = str(data.get("password", "")).strip()
-        role = str(data.get("role", "Student")).strip().capitalize()
+        raw_role = str(data.get("role", "Student")).strip()
+        
+        # Normalize role
+        if raw_role.lower() in ("organisation", "organization"):
+            role = "Organisation"
+        elif raw_role.lower() in ("admin", "super admin"):
+            role = "Admin"
+        elif raw_role.lower() == "faculty":
+            role = "Faculty"
+        else:
+            role = "Student"
+
+        # Permission check: Organisation users CANNOT create Admin/Super Admin
+        if norm_requested_role in ("Organisation", "Organization") and role in ("Admin", "Super Admin"):
+            raise ForbiddenError("Access denied: Organisation users cannot create Administrator accounts.")
 
         # Generate username if not provided
         raw_username = str(data.get("username", "")).strip().lower()
@@ -78,8 +109,7 @@ class AuthService:
                 base_username = re.sub(r'[^a-z0-9_]', '', f"{first_name}_{last_name}".strip("_").lower())
             else:
                 base_username = "user"
-            
-            # Check availability and deduplicate
+
             candidate = base_username
             idx = 1
             while UserRepository.get_by_username(candidate):
@@ -95,8 +125,6 @@ class AuthService:
             raise ValidationError("A valid email address is required.")
         if not password or len(password) < 6:
             raise ValidationError("Password must be at least 6 characters.")
-        if role not in ("Admin", "Faculty", "Student"):
-            raise ValidationError("Role must be Admin, Faculty, or Student.")
 
         if UserRepository.get_by_username(username):
             raise ConflictError(f"Username '{username}' is already in use.")
@@ -108,18 +136,20 @@ class AuthService:
 
         if role == "Student":
             if student_id:
-                if not StudentRepository.get_by_id(student_id):
+                target_stu = StudentRepository.get_by_id(student_id)
+                if not target_stu:
                     raise NotFoundError(f"Student with ID {student_id} does not exist.")
+                if int(target_stu["organisation_id"]) != org_id:
+                    raise ValidationError("Student belongs to another organisation.")
                 if UserRepository.get_by_student_id(student_id):
                     raise ConflictError("A user account already exists for this student.")
             else:
-                # Check if student exists by email or roll_number
                 roll_number = str(data.get("roll_number", "")).strip().upper()
                 existing_student = None
                 if roll_number:
-                    existing_student = StudentRepository.get_by_roll_number(roll_number)
+                    existing_student = StudentRepository.get_by_roll_number(roll_number, organisation_id=org_id)
                 if not existing_student:
-                    existing_student = StudentRepository.get_by_email(email)
+                    existing_student = StudentRepository.get_by_email(email, organisation_id=org_id)
 
                 if existing_student:
                     student_id = existing_student["id"]
@@ -129,6 +159,7 @@ class AuthService:
                     if not roll_number:
                         roll_number = f"STU-{random.randint(10000, 99999)}"
                     student_id = StudentRepository.create({
+                        "organisation_id": org_id,
                         "roll_number": roll_number,
                         "first_name": first_name or username.capitalize(),
                         "last_name": last_name or "",
@@ -141,17 +172,20 @@ class AuthService:
 
         elif role == "Faculty":
             if faculty_id:
-                if not FacultyRepository.get_by_id(faculty_id):
+                target_fac = FacultyRepository.get_by_id(faculty_id)
+                if not target_fac:
                     raise NotFoundError(f"Faculty with ID {faculty_id} does not exist.")
+                if int(target_fac["organisation_id"]) != org_id:
+                    raise ValidationError("Faculty belongs to another organisation.")
                 if UserRepository.get_by_faculty_id(faculty_id):
                     raise ConflictError("A user account already exists for this faculty member.")
             else:
                 faculty_code = str(data.get("faculty_code", "")).strip().upper()
                 existing_faculty = None
                 if faculty_code:
-                    existing_faculty = FacultyRepository.get_by_code(faculty_code)
+                    existing_faculty = FacultyRepository.get_by_code(faculty_code, organisation_id=org_id)
                 if not existing_faculty:
-                    existing_faculty = FacultyRepository.get_by_email(email)
+                    existing_faculty = FacultyRepository.get_by_email(email, organisation_id=org_id)
 
                 if existing_faculty:
                     faculty_id = existing_faculty["id"]
@@ -161,6 +195,7 @@ class AuthService:
                     if not faculty_code:
                         faculty_code = f"FAC-{random.randint(1000, 9999)}"
                     faculty_id = FacultyRepository.create({
+                        "organisation_id": org_id,
                         "faculty_code": faculty_code,
                         "first_name": first_name or username.capitalize(),
                         "last_name": last_name or "",
@@ -171,6 +206,7 @@ class AuthService:
 
         password_hash = generate_password_hash(password)
         user_id = UserRepository.create({
+            "organisation_id": org_id,
             "username": username,
             "email": email,
             "password_hash": password_hash,
@@ -190,11 +226,9 @@ class AuthService:
         Strictly forces role to 'Student' and strips any attempts to gain Admin/Faculty privileges.
         Creates or links an associated student profile record.
         """
-        # 1. Strip/ignore any client-provided role or faculty assignments
-        # role is unconditionally forced to 'Student'
         forced_role = "Student"
+        org_id = int(data.get("organisation_id") or 1)
 
-        # 2. Parse name fields
         raw_name = str(data.get("name", "") or data.get("full_name", "")).strip()
         first_name = str(data.get("first_name", "")).strip()
         last_name = str(data.get("last_name", "")).strip()
@@ -209,7 +243,6 @@ class AuthService:
         confirm_password = str(data.get("confirm_password", "")).strip() if "confirm_password" in data else None
         roll_number = str(data.get("roll_number", "")).strip().upper()
 
-        # 3. Input validations
         if not email or "@" not in email:
             raise ValidationError("A valid email address is required.")
 
@@ -219,7 +252,6 @@ class AuthService:
         if not password or len(password) < 6:
             raise ValidationError("Password must be at least 6 characters long.")
 
-        # 4. Generate or validate username
         raw_username = str(data.get("username", "")).strip().lower()
         if not raw_username:
             if email and "@" in email:
@@ -241,26 +273,22 @@ class AuthService:
         if not username or len(username) < 3:
             raise ValidationError("Username must be at least 3 characters.")
 
-        # 5. Check uniqueness in users table
         if UserRepository.get_by_username(username):
             raise ConflictError(f"Username '{username}' is already in use.")
         if UserRepository.get_by_email(email):
             raise ConflictError(f"Email '{email}' is already registered.")
 
-        # 6. Student record linking / creation
         existing_student = None
         if roll_number:
-            existing_student = StudentRepository.get_by_roll_number(roll_number)
+            existing_student = StudentRepository.get_by_roll_number(roll_number, organisation_id=org_id)
             if existing_student:
-                # Security check: if student already has a user account
                 if UserRepository.get_by_student_id(existing_student["id"]):
                     raise ConflictError("A user account already exists for this student roll number.")
-                # Security check: if student record has an email that differs from registration email
                 if existing_student.get("email") and existing_student["email"].lower() != email:
                     raise ConflictError("The provided roll number is registered to a different email address.")
 
         if not existing_student:
-            student_by_email = StudentRepository.get_by_email(email)
+            student_by_email = StudentRepository.get_by_email(email, organisation_id=org_id)
             if student_by_email:
                 if UserRepository.get_by_student_id(student_by_email["id"]):
                     raise ConflictError("A user account already exists for this student email.")
@@ -272,13 +300,14 @@ class AuthService:
             if not roll_number:
                 for _ in range(10):
                     candidate_roll = f"STU-{random.randint(10000, 99999)}"
-                    if not StudentRepository.get_by_roll_number(candidate_roll):
+                    if not StudentRepository.get_by_roll_number(candidate_roll, organisation_id=org_id):
                         roll_number = candidate_roll
                         break
                 if not roll_number:
                     roll_number = f"STU-{int(datetime.now().timestamp())}"
 
             student_id = StudentRepository.create({
+                "organisation_id": org_id,
                 "roll_number": roll_number,
                 "first_name": first_name or username.capitalize(),
                 "last_name": last_name or "",
@@ -290,9 +319,9 @@ class AuthService:
                 "address": data.get("address") or "",
             })
 
-        # 7. Create user record with forced Student role and no faculty_id
         password_hash = generate_password_hash(password)
         user_id = UserRepository.create({
+            "organisation_id": org_id,
             "username": username,
             "email": email,
             "password_hash": password_hash,
@@ -306,19 +335,30 @@ class AuthService:
         return {k: v for k, v in created.items() if k != "password_hash"}
 
     @staticmethod
-    def list_users(role: Optional[str] = None, limit: int = 100, offset: int = 0) -> List[Dict[str, Any]]:
-        """List user accounts (Admin only)."""
-        return UserRepository.list_users(role=role, limit=limit, offset=offset)
+    def list_users(
+        role: Optional[str] = None,
+        organisation_id: Optional[int] = None,
+        limit: int = 100,
+        offset: int = 0,
+    ) -> List[Dict[str, Any]]:
+        """List user accounts scoped to organisation."""
+        return UserRepository.list_users(role=role, organisation_id=organisation_id, limit=limit, offset=offset)
 
     @staticmethod
     def update_user_account(user_id: int, data: Dict[str, Any], current_user: Dict[str, Any]) -> Dict[str, Any]:
-        """Update an existing user account with protection against self-lockout and admin loss."""
-        if current_user.get("role") != "Admin":
-            raise ForbiddenError("Only Administrators can update user accounts.")
+        """Update an existing user account with role hierarchy and organisation boundary checks."""
+        current_role = str(current_user.get("role") or "").strip().title()
+        if current_role not in ("Admin", "Super Admin", "Organisation", "Organization"):
+            raise ForbiddenError("Only Administrators and Organisation managers can update user accounts.")
 
         target_user = UserRepository.get_by_id(user_id)
         if not target_user:
             raise NotFoundError(f"User with ID {user_id} not found.")
+
+        # Organisation user boundary check
+        if current_role in ("Organisation", "Organization"):
+            if int(target_user["organisation_id"]) != int(current_user["organisation_id"]):
+                raise ForbiddenError("Access denied: You cannot modify users belonging to another organisation.")
 
         update_payload: Dict[str, Any] = {}
 
@@ -349,16 +389,28 @@ class AuthService:
 
         # Role change
         if "role" in data and data["role"]:
-            new_role = str(data["role"]).strip().capitalize()
-            if new_role not in ("Admin", "Faculty", "Student"):
-                raise ValidationError(f"Invalid role '{new_role}'. Must be Admin, Faculty, or Student.")
+            raw_new_role = str(data["role"]).strip().title()
+            if raw_new_role in ("Organisation", "Organization"):
+                new_role = "Organisation"
+            elif raw_new_role in ("Admin", "Super Admin"):
+                new_role = "Admin"
+            elif raw_new_role == "Faculty":
+                new_role = "Faculty"
+            elif raw_new_role == "Student":
+                new_role = "Student"
+            else:
+                raise ValidationError(f"Invalid role '{raw_new_role}'.")
+
+            # Organisation users CANNOT promote anyone to Admin or change role to Admin
+            if current_role in ("Organisation", "Organization") and new_role in ("Admin", "Super Admin"):
+                raise ForbiddenError("Organisation users cannot assign Administrator privileges.")
 
             # Prevent Admin from demoting their own account
-            if target_user["id"] == current_user["id"] and new_role != "Admin":
+            if target_user["id"] == current_user["id"] and new_role not in ("Admin", "Super Admin"):
                 raise ForbiddenError("You cannot revoke your own Administrator privileges.")
 
             # Prevent demoting the only active Admin
-            if target_user["role"] == "Admin" and new_role != "Admin":
+            if target_user["role"] in ("Admin", "Super Admin") and new_role not in ("Admin", "Super Admin"):
                 if UserRepository.count_active_admins() <= 1:
                     raise ForbiddenError("Cannot demote the only remaining active Administrator.")
 
@@ -369,12 +421,16 @@ class AuthService:
             is_active = bool(data["is_active"])
             # Prevent deactivating own account
             if target_user["id"] == current_user["id"] and not is_active:
-                raise ForbiddenError("You cannot deactivate your own active Administrator account.")
+                raise ForbiddenError("You cannot deactivate your own active account.")
             # Prevent deactivating the only active Admin
-            if target_user["role"] == "Admin" and not is_active:
+            if target_user["role"] in ("Admin", "Super Admin") and not is_active:
                 if UserRepository.count_active_admins() <= 1:
                     raise ForbiddenError("Cannot deactivate the only remaining active Administrator.")
             update_payload["is_active"] = is_active
+
+        # Prevent changing organisation_id by Organisation users
+        if "organisation_id" in data and current_role not in ("Admin", "Super Admin"):
+            raise ForbiddenError("Cannot change organisation membership.")
 
         if update_payload:
             UserRepository.update_user(user_id, update_payload)
@@ -384,20 +440,28 @@ class AuthService:
 
     @staticmethod
     def delete_user_account(user_id: int, current_user: Dict[str, Any]) -> bool:
-        """Delete an existing user account with protection against self-deletion and admin loss."""
-        if current_user.get("role") != "Admin":
-            raise ForbiddenError("Only Administrators can delete user accounts.")
+        """Delete an existing user account with organisation scoping."""
+        current_role = str(current_user.get("role") or "").strip().title()
+        if current_role not in ("Admin", "Super Admin", "Organisation", "Organization"):
+            raise ForbiddenError("Only Administrators and Organisation managers can delete user accounts.")
 
         target_user = UserRepository.get_by_id(user_id)
         if not target_user:
             raise NotFoundError(f"User with ID {user_id} not found.")
 
+        # Organisation user boundary check
+        if current_role in ("Organisation", "Organization"):
+            if int(target_user["organisation_id"]) != int(current_user["organisation_id"]):
+                raise ForbiddenError("Access denied: You cannot delete users belonging to another organisation.")
+            if target_user["role"] in ("Admin", "Super Admin"):
+                raise ForbiddenError("Organisation users cannot delete Administrator accounts.")
+
         # Prevent deleting own account
         if target_user["id"] == current_user["id"]:
-            raise ForbiddenError("You cannot delete your own active Administrator account.")
+            raise ForbiddenError("You cannot delete your own active account.")
 
         # Prevent deleting the only active Admin
-        if target_user["role"] == "Admin":
+        if target_user["role"] in ("Admin", "Super Admin"):
             if UserRepository.count_active_admins() <= 1:
                 raise ForbiddenError("Cannot delete the only remaining active Administrator.")
 

@@ -250,22 +250,31 @@ class AnalyticsService:
         }
 
     @staticmethod
-    def get_admin_analytics() -> Dict[str, Any]:
+    def get_admin_analytics(organisation_id: Optional[int] = None) -> Dict[str, Any]:
         """
         Generate institution-wide aggregated analytics and KPI overviews.
-        Admin-only scope.
+        Scoped to organisation_id if provided.
         """
+        org_where = "WHERE organisation_id = %s" if organisation_id is not None else ""
+        org_params = (organisation_id,) if organisation_id is not None else ()
+
         # 1. Total counts
-        total_students = StudentRepository.count_students()
-        total_subjects = db.query_one("SELECT COUNT(*) as c FROM subjects")["c"]
-        total_semesters = db.query_one("SELECT COUNT(*) as c FROM semesters")["c"]
-        total_faculty = db.query_one("SELECT COUNT(*) as c FROM faculty")["c"]
+        total_students = StudentRepository.count_students(organisation_id=organisation_id)
+        sub_row = db.query_one(f"SELECT COUNT(*) as c FROM subjects {org_where}", org_params if org_params else None)
+        total_subjects = sub_row["c"] if sub_row else 0
+        sem_row = db.query_one(f"SELECT COUNT(*) as c FROM semesters {org_where}", org_params if org_params else None)
+        total_semesters = sem_row["c"] if sem_row else 0
+        fac_row = db.query_one(f"SELECT COUNT(*) as c FROM faculty {org_where}", org_params if org_params else None)
+        total_faculty = fac_row["c"] if fac_row else 0
 
         # Active semester
-        active_sem = db.query_one("SELECT name, academic_year FROM semesters WHERE is_active = TRUE LIMIT 1")
+        if organisation_id is not None:
+            active_sem = db.query_one("SELECT name, academic_year FROM semesters WHERE is_active = TRUE AND organisation_id = %s LIMIT 1", (organisation_id,))
+        else:
+            active_sem = db.query_one("SELECT name, academic_year FROM semesters WHERE is_active = TRUE LIMIT 1")
 
         # 2. Institution-wide Grade Distribution
-        grade_dist_sql = """
+        grade_dist_sql = f"""
             SELECT 
                 SUM(CASE WHEN (marks_obtained / max_marks * 100) >= 90 THEN 1 ELSE 0 END) as grade_a_plus,
                 SUM(CASE WHEN (marks_obtained / max_marks * 100) >= 80 AND (marks_obtained / max_marks * 100) < 90 THEN 1 ELSE 0 END) as grade_a,
@@ -275,20 +284,22 @@ class AnalyticsService:
                 SUM(CASE WHEN (marks_obtained / max_marks * 100) < 50 THEN 1 ELSE 0 END) as grade_f,
                 COUNT(*) as total_marks
             FROM marks
+            {org_where}
         """
-        g_row = db.query_one(grade_dist_sql)
+        g_row = db.query_one(grade_dist_sql, org_params if org_params else None)
         grade_distribution = {
-            "A+": int(g_row["grade_a_plus"] or 0),
-            "A": int(g_row["grade_a"] or 0),
-            "B": int(g_row["grade_b"] or 0),
-            "C": int(g_row["grade_c"] or 0),
-            "D": int(g_row["grade_d"] or 0),
-            "F": int(g_row["grade_f"] or 0),
-            "total": int(g_row["total_marks"] or 0),
+            "A+": int(g_row["grade_a_plus"] or 0) if g_row else 0,
+            "A": int(g_row["grade_a"] or 0) if g_row else 0,
+            "B": int(g_row["grade_b"] or 0) if g_row else 0,
+            "C": int(g_row["grade_c"] or 0) if g_row else 0,
+            "D": int(g_row["grade_d"] or 0) if g_row else 0,
+            "F": int(g_row["grade_f"] or 0) if g_row else 0,
+            "total": int(g_row["total_marks"] or 0) if g_row else 0,
         }
 
         # 3. Departmental averages
-        dept_sql = """
+        dept_where = "WHERE sub.organisation_id = %s" if organisation_id is not None else ""
+        dept_sql = f"""
             SELECT 
                 sub.department,
                 COUNT(DISTINCT sub.id) as course_count,
@@ -296,10 +307,11 @@ class AnalyticsService:
                 AVG(m.marks_obtained / m.max_marks * 100) as avg_score
             FROM subjects sub
             LEFT JOIN marks m ON sub.id = m.subject_id
+            {dept_where}
             GROUP BY sub.department
             ORDER BY sub.department ASC
         """
-        dept_rows = db.query_all(dept_sql)
+        dept_rows = db.query_all(dept_sql, org_params if org_params else None)
         department_metrics = [
             {
                 "department": r["department"],
@@ -311,18 +323,20 @@ class AnalyticsService:
         ]
 
         # 4. Overall Attendance KPI
-        att_kpi = db.query_one("""
+        att_sql = f"""
             SELECT 
                 COUNT(*) as total_sessions,
                 SUM(CASE WHEN status IN ('Present', 'Excused') THEN 1 WHEN status = 'Late' THEN 0.5 ELSE 0 END) as attended
             FROM attendance
-        """)
+            {org_where}
+        """
+        att_kpi = db.query_one(att_sql, org_params if org_params else None)
         overall_att_rate = 0.0
         if att_kpi and att_kpi["total_sessions"] and int(att_kpi["total_sessions"]) > 0:
             overall_att_rate = round((float(att_kpi["attended"]) / float(att_kpi["total_sessions"])) * 100, 2)
 
         # 5. At-risk students
-        low_att_list = ReportService.get_low_attendance_report(threshold=75.0)
+        low_att_list = ReportService.get_low_attendance_report(threshold=75.0, organisation_id=organisation_id)
 
         return {
             "kpis": {

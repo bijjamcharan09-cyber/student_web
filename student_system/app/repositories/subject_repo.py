@@ -1,5 +1,5 @@
 """
-Subject repository for data access operations.
+Subject repository for data access operations with organisation scoping.
 """
 
 from typing import Any, Dict, List, Optional
@@ -11,24 +11,37 @@ class SubjectRepository:
 
     @staticmethod
     def create(data: Dict[str, Any]) -> int:
+        payload = {
+            "organisation_id": int(data.get("organisation_id") or 1),
+            "subject_code": data.get("subject_code"),
+            "name": data.get("name"),
+            "credits": data.get("credits", 3.0),
+            "department": data.get("department"),
+            "semester_id": data.get("semester_id"),
+        }
         sql = """
-            INSERT INTO subjects (subject_code, name, credits, department, semester_id)
-            VALUES (%(subject_code)s, %(name)s, %(credits)s, %(department)s, %(semester_id)s)
+            INSERT INTO subjects (organisation_id, subject_code, name, credits, department, semester_id)
+            VALUES (%(organisation_id)s, %(subject_code)s, %(name)s, %(credits)s, %(department)s, %(semester_id)s)
         """
-        return db.execute_insert(sql, data)
+        return db.execute_insert(sql, payload)
 
     @staticmethod
     def get_by_id(subject_id: int) -> Optional[Dict[str, Any]]:
         sql = """
-            SELECT sub.*, sem.name AS semester_name, sem.semester_number
+            SELECT sub.*, sem.name AS semester_name, sem.semester_number,
+                   org.name AS organisation_name, org.code AS organisation_code
             FROM subjects sub
+            LEFT JOIN organisations org ON sub.organisation_id = org.id
             LEFT JOIN semesters sem ON sub.semester_id = sem.id
             WHERE sub.id = %s
         """
         return db.query_one(sql, (subject_id,))
 
     @staticmethod
-    def get_by_code(code: str) -> Optional[Dict[str, Any]]:
+    def get_by_code(code: str, organisation_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        if organisation_id is not None:
+            sql = "SELECT * FROM subjects WHERE subject_code = %s AND organisation_id = %s"
+            return db.query_one(sql, (code, organisation_id))
         sql = "SELECT * FROM subjects WHERE subject_code = %s"
         return db.query_one(sql, (code,))
 
@@ -57,6 +70,7 @@ class SubjectRepository:
         department: Optional[str] = None,
         semester_id: Optional[int] = None,
         search: Optional[str] = None,
+        organisation_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
         limit: int = 50,
@@ -64,6 +78,10 @@ class SubjectRepository:
     ) -> List[Dict[str, Any]]:
         conditions = []
         params: List[Any] = []
+
+        if organisation_id is not None:
+            conditions.append("sub.organisation_id = %s")
+            params.append(organisation_id)
 
         if department:
             conditions.append("sub.department = %s")
@@ -93,8 +111,10 @@ class SubjectRepository:
         order_clause = f"ORDER BY {order_col} {direction}"
 
         sql = f"""
-            SELECT sub.*, sem.name AS semester_name, sem.semester_number
+            SELECT sub.*, sem.name AS semester_name, sem.semester_number,
+                   org.name AS organisation_name, org.code AS organisation_code
             FROM subjects sub
+            LEFT JOIN organisations org ON sub.organisation_id = org.id
             LEFT JOIN semesters sem ON sub.semester_id = sem.id
             {where_clause}
             {order_clause}
@@ -108,9 +128,14 @@ class SubjectRepository:
         department: Optional[str] = None,
         semester_id: Optional[int] = None,
         search: Optional[str] = None,
+        organisation_id: Optional[int] = None,
     ) -> int:
         conditions = []
         params: List[Any] = []
+
+        if organisation_id is not None:
+            conditions.append("sub.organisation_id = %s")
+            params.append(organisation_id)
 
         if department:
             conditions.append("sub.department = %s")

@@ -9,6 +9,7 @@ from app.repositories.mark_repo import MarkRepository
 from app.repositories.attendance_repo import AttendanceRepository
 from app.repositories.user_repo import UserRepository
 from app.repositories.faculty_repo import FacultyRepository
+from app.repositories.organisation_repo import OrganisationRepository
 
 __all__ = [
     "StudentRepository",
@@ -18,5 +19,5 @@ __all__ = [
     "AttendanceRepository",
     "UserRepository",
     "FacultyRepository",
+    "OrganisationRepository",
 ]
-

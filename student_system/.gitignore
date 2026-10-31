@@ -56,3 +56,5 @@ Desktop.ini
 # Tests Files
 tests/
 
+# certificate files
+certificates/

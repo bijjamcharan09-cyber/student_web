@@ -1,5 +1,5 @@
 """
-Student repository for data access operations.
+Student repository for data access operations with organisation scoping.
 """
 
 from typing import Any, Dict, List, Optional
@@ -12,6 +12,7 @@ class StudentRepository:
     @staticmethod
     def create(data: Dict[str, Any]) -> int:
         payload = {
+            "organisation_id": int(data.get("organisation_id") or 1),
             "roll_number": data.get("roll_number"),
             "first_name": data.get("first_name"),
             "last_name": data.get("last_name"),
@@ -26,11 +27,11 @@ class StudentRepository:
         }
         sql = """
             INSERT INTO students (
-                roll_number, first_name, last_name, email, phone,
+                organisation_id, roll_number, first_name, last_name, email, phone,
                 date_of_birth, gender, current_semester_id, enrollment_date,
                 status, address
             ) VALUES (
-                %(roll_number)s, %(first_name)s, %(last_name)s, %(email)s, %(phone)s,
+                %(organisation_id)s, %(roll_number)s, %(first_name)s, %(last_name)s, %(email)s, %(phone)s,
                 %(date_of_birth)s, %(gender)s, %(current_semester_id)s, %(enrollment_date)s,
                 %(status)s, %(address)s
             )
@@ -42,20 +43,28 @@ class StudentRepository:
         sql = """
             SELECT s.*, 
                    sem.name AS current_semester_name,
-                   sem.semester_number AS current_semester_number
+                   sem.semester_number AS current_semester_number,
+                   org.name AS organisation_name, org.code AS organisation_code
             FROM students s
+            LEFT JOIN organisations org ON s.organisation_id = org.id
             LEFT JOIN semesters sem ON s.current_semester_id = sem.id
             WHERE s.id = %s
         """
         return db.query_one(sql, (student_id,))
 
     @staticmethod
-    def get_by_roll_number(roll_number: str) -> Optional[Dict[str, Any]]:
+    def get_by_roll_number(roll_number: str, organisation_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        if organisation_id is not None:
+            sql = "SELECT * FROM students WHERE roll_number = %s AND organisation_id = %s"
+            return db.query_one(sql, (roll_number, organisation_id))
         sql = "SELECT * FROM students WHERE roll_number = %s"
         return db.query_one(sql, (roll_number,))
 
     @staticmethod
-    def get_by_email(email: str) -> Optional[Dict[str, Any]]:
+    def get_by_email(email: str, organisation_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        if organisation_id is not None:
+            sql = "SELECT * FROM students WHERE email = %s AND organisation_id = %s"
+            return db.query_one(sql, (email, organisation_id))
         sql = "SELECT * FROM students WHERE email = %s"
         return db.query_one(sql, (email,))
 
@@ -84,6 +93,7 @@ class StudentRepository:
         search: Optional[str] = None,
         status: Optional[str] = None,
         semester_id: Optional[int] = None,
+        organisation_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
         limit: int = 10,
@@ -91,6 +101,10 @@ class StudentRepository:
     ) -> List[Dict[str, Any]]:
         conditions = []
         params: List[Any] = []
+
+        if organisation_id is not None:
+            conditions.append("s.organisation_id = %s")
+            params.append(organisation_id)
 
         if search:
             search_param = f"%{search}%"
@@ -131,8 +145,10 @@ class StudentRepository:
         sql = f"""
             SELECT s.*, 
                    sem.name AS current_semester_name,
-                   sem.semester_number AS current_semester_number
+                   sem.semester_number AS current_semester_number,
+                   org.name AS organisation_name, org.code AS organisation_code
             FROM students s
+            LEFT JOIN organisations org ON s.organisation_id = org.id
             LEFT JOIN semesters sem ON s.current_semester_id = sem.id
             {where_clause}
             {order_clause}
@@ -146,9 +162,14 @@ class StudentRepository:
         search: Optional[str] = None,
         status: Optional[str] = None,
         semester_id: Optional[int] = None,
+        organisation_id: Optional[int] = None,
     ) -> int:
         conditions = []
         params: List[Any] = []
+
+        if organisation_id is not None:
+            conditions.append("s.organisation_id = %s")
+            params.append(organisation_id)
 
         if search:
             search_param = f"%{search}%"

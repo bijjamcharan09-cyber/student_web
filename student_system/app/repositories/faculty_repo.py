@@ -1,5 +1,5 @@
 """
-Faculty repository for managing academic staff and course assignments.
+Faculty repository for managing academic staff and course assignments with organisation scoping.
 """
 
 from typing import Any, Dict, List, Optional
@@ -12,6 +12,7 @@ class FacultyRepository:
     @staticmethod
     def create(data: Dict[str, Any]) -> int:
         payload = {
+            "organisation_id": int(data.get("organisation_id") or 1),
             "faculty_code": data.get("faculty_code"),
             "first_name": data.get("first_name"),
             "last_name": data.get("last_name"),
@@ -21,37 +22,54 @@ class FacultyRepository:
             "designation": data.get("designation", "Lecturer"),
         }
         sql = """
-            INSERT INTO faculty (faculty_code, first_name, last_name, email, phone, department, designation)
-            VALUES (%(faculty_code)s, %(first_name)s, %(last_name)s, %(email)s, %(phone)s, %(department)s, %(designation)s)
+            INSERT INTO faculty (organisation_id, faculty_code, first_name, last_name, email, phone, department, designation)
+            VALUES (%(organisation_id)s, %(faculty_code)s, %(first_name)s, %(last_name)s, %(email)s, %(phone)s, %(department)s, %(designation)s)
         """
         return db.execute_insert(sql, payload)
 
     @staticmethod
     def get_by_id(faculty_id: int) -> Optional[Dict[str, Any]]:
-        sql = "SELECT * FROM faculty WHERE id = %s"
+        sql = """
+            SELECT f.*, org.name AS organisation_name, org.code AS organisation_code
+            FROM faculty f
+            LEFT JOIN organisations org ON f.organisation_id = org.id
+            WHERE f.id = %s
+        """
         return db.query_one(sql, (faculty_id,))
 
     @staticmethod
-    def get_by_code(code: str) -> Optional[Dict[str, Any]]:
+    def get_by_code(code: str, organisation_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        if organisation_id is not None:
+            sql = "SELECT * FROM faculty WHERE faculty_code = %s AND organisation_id = %s"
+            return db.query_one(sql, (code, organisation_id))
         sql = "SELECT * FROM faculty WHERE faculty_code = %s"
         return db.query_one(sql, (code,))
 
     @staticmethod
-    def get_by_email(email: str) -> Optional[Dict[str, Any]]:
+    def get_by_email(email: str, organisation_id: Optional[int] = None) -> Optional[Dict[str, Any]]:
+        if organisation_id is not None:
+            sql = "SELECT * FROM faculty WHERE email = %s AND organisation_id = %s"
+            return db.query_one(sql, (email, organisation_id))
         sql = "SELECT * FROM faculty WHERE email = %s"
         return db.query_one(sql, (email,))
 
     @staticmethod
     def list_faculty(
         department: Optional[str] = None,
+        organisation_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         params = []
-        where = ""
+        where_clauses = []
+        if organisation_id is not None:
+            where_clauses.append("organisation_id = %s")
+            params.append(organisation_id)
         if department:
-            where = "WHERE department = %s"
+            where_clauses.append("department = %s")
             params.append(department)
+
+        where = f"WHERE {' AND '.join(where_clauses)}" if where_clauses else ""
 
         sort_map = {
             "faculty_code": "faculty_code",
@@ -109,52 +127,18 @@ class FacultyRepository:
             where_sem = "AND semester_id = %s"
             params.append(semester_id)
 
-        sql = f"""
-            SELECT id FROM faculty_subjects
-            WHERE faculty_id = %s AND subject_id = %s {where_sem}
-            LIMIT 1
-        """
+        sql = f"SELECT 1 FROM faculty_subjects WHERE faculty_id = %s AND subject_id = %s {where_sem} LIMIT 1"
         row = db.query_one(sql, tuple(params))
         return row is not None
 
     @staticmethod
     def is_student_taught_by_faculty(faculty_id: int, student_id: int) -> bool:
-        """Check if a student is enrolled in ANY subject taught by the faculty member."""
         sql = """
-            SELECT ss.id
-            FROM student_subjects ss
-            JOIN faculty_subjects fs 
-              ON ss.subject_id = fs.subject_id AND ss.semester_id = fs.semester_id
+            SELECT 1
+            FROM faculty_subjects fs
+            JOIN student_subjects ss ON fs.subject_id = ss.subject_id AND fs.semester_id = ss.semester_id
             WHERE fs.faculty_id = %s AND ss.student_id = %s
             LIMIT 1
         """
         row = db.query_one(sql, (faculty_id, student_id))
         return row is not None
-
-    @staticmethod
-    def update(faculty_id: int, data: Dict[str, Any]) -> int:
-        allowed = ["faculty_code", "first_name", "last_name", "email", "phone", "department", "designation"]
-        fields = []
-        params = {}
-        for key, value in data.items():
-            if key in allowed:
-                fields.append(f"`{key}` = %({key})s")
-                params[key] = value
-
-        if not fields:
-            return 0
-
-        params["faculty_id"] = faculty_id
-        sql = f"UPDATE faculty SET {', '.join(fields)} WHERE id = %(faculty_id)s"
-        return db.execute_update(sql, params)
-
-    @staticmethod
-    def delete(faculty_id: int) -> int:
-        sql = "DELETE FROM faculty WHERE id = %s"
-        return db.execute_update(sql, (faculty_id,))
-
-    @staticmethod
-    def count_assigned_subjects(faculty_id: int) -> int:
-        sql = "SELECT COUNT(*) as c FROM faculty_subjects WHERE faculty_id = %s"
-        row = db.query_one(sql, (faculty_id,))
-        return row["c"] if row else 0

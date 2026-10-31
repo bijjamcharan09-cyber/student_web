@@ -5,13 +5,17 @@ and ACID transaction management using PyMySQL.
 """
 
 from contextlib import contextmanager
+import logging
 from typing import Any, Dict, List, Optional, Tuple, Union
 import pymysql
+import ssl
 from pymysql.constants import CLIENT
 from pymysql.cursors import DictCursor
 
 from config import Config
 from app.utils.exceptions import ConflictError, DatabaseError, ValidationError, NotFoundError
+
+logger = logging.getLogger(__name__)
 
 # Global hook for test mocking / dependency injection
 _connection_override = None
@@ -23,44 +27,56 @@ def set_connection_override(conn_factory):
     _connection_override = conn_factory
 
 
+
 def get_connection():
-    """Obtain a new database connection configured with dictionary cursors."""
+    """Connect to MySQL / TiDB Cloud with verified TLS."""
     global _connection_override
+
     if _connection_override is not None:
         return _connection_override()
 
     try:
-        connection = pymysql.connect(
-            host=Config.DB_HOST,
-            port=Config.DB_PORT,
-            user=Config.DB_USER,
-            password=Config.DB_PASSWORD,
-            database=Config.DB_NAME,
-            charset=Config.DB_CHARSET,
-            cursorclass=DictCursor,
-            autocommit=False,
-            connect_timeout=Config.DB_CONNECT_TIMEOUT,
-            read_timeout=Config.DB_READ_TIMEOUT,
-            write_timeout=Config.DB_WRITE_TIMEOUT,
-        )
-        return connection
-    except pymysql.MySQLError as e:
-        raise DatabaseError(f"Database connection error: {str(e)}")
+        connection_options = {
+            "host": Config.DB_HOST,
+            "port": Config.DB_PORT,
+            "user": Config.DB_USER,
+            "password": Config.DB_PASSWORD,
+            "database": Config.DB_NAME,
+            "charset": Config.DB_CHARSET,
+            "cursorclass": DictCursor,
+            "autocommit": False,
+            "connect_timeout": Config.DB_CONNECT_TIMEOUT,
+            "read_timeout": Config.DB_READ_TIMEOUT,
+            "write_timeout": Config.DB_WRITE_TIMEOUT,
+        }
 
+        if Config.DB_SSL and Config.DB_SSL.get("ca"):
+            connection_options["ssl"] = {
+                "ca": Config.DB_SSL["ca"],
+                "check_hostname": True,
+            }
+            connection_options["ssl_verify_cert"] = True
+            connection_options["ssl_verify_identity"] = True
+
+        return pymysql.connect(**connection_options)
+
+    except pymysql.MySQLError:
+        logger.exception("TiDB database connection failed")
+        raise DatabaseError("Database connection error.")
 
 def handle_mysql_error(e: pymysql.MySQLError):
-    """Map MySQL error codes to domain exceptions."""
+    """Map MySQL error codes to sanitized domain exceptions without leaking internal schema."""
     err_no = getattr(e, "args", [None])[0] if e.args else None
-    err_msg = str(e)
+    logger.error("Database operation failed [MySQL errno=%s]: %s", err_no, e)
 
     if err_no == 1062:
-        raise ConflictError(f"Unique constraint violation: {err_msg}")
+        raise ConflictError("A record with these unique details already exists in the system.")
     elif err_no == 1452:
-        raise ValidationError(f"Referenced record does not exist: {err_msg}")
+        raise ValidationError("Referenced related record does not exist or belongs to another entity.")
     elif err_no == 1451:
-        raise ConflictError(f"Cannot delete record because related records depend on it: {err_msg}")
+        raise ConflictError("Cannot delete or modify record because related academic records depend on it.")
     else:
-        raise DatabaseError(f"Database operation failed: {err_msg}")
+        raise DatabaseError("Database operation failed. Please check your request parameters.")
 
 
 @contextmanager

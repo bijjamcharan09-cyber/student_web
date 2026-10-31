@@ -241,6 +241,17 @@
       <div class="auth-bar">
         <span id="userStatusText" style="font-size: 0.88rem; color: #475569;">Verifying session...</span>
         <span id="userRoleBadge" class="role-badge role-admin">Role</span>
+        
+        <!-- Super Admin Organisation Selector (RBAC-Controlled) -->
+        <div id="orgSelectorWrapper" style="display:none; align-items:center; gap:6px; background:#f1f5f9; padding:4px 10px; border-radius:8px; border:1px solid #cbd5e1;">
+          <label for="superAdminOrgSelect" style="font-size:0.78rem; font-weight:700; color:#334155;">🏢 Org Context:</label>
+          <select id="superAdminOrgSelect" onchange="onSuperAdminOrgChange(this.value)" style="padding:4px 8px; font-size:0.82rem; border:1px solid #94a3b8; border-radius:6px; background:#ffffff; font-weight:600; color:#1e293b; cursor:pointer;">
+            <option value="">🌐 All Organisations (Global)</option>
+          </select>
+        </div>
+        <!-- Non-Super Admin fixed organisation badge -->
+        <span id="userOrgBadge" class="role-badge" style="display:none; background:#e0f2fe; color:#0369a1; border:1px solid #bae6fd;">Org</span>
+
         <a id="headerSignInBtn" href="/login" class="btn btn-primary btn-sm" style="display:none; text-decoration:none;">Sign In</a>
         <a id="headerSignUpBtn" href="/signup" class="btn btn-secondary btn-sm" style="display:none; text-decoration:none;">Sign Up</a>
         <button id="logoutBtn" class="btn btn-secondary btn-sm" onclick="logout()">Log Out</button>
@@ -259,6 +270,7 @@
       <button class="tab-btn" id="tabBtnSemesters" onclick="switchTab('semesters')">🗓️ Semesters</button>
       <button class="tab-btn" id="tabBtnMarks" onclick="switchTab('marks')">📝 Marks</button>
       <button class="tab-btn" id="tabBtnAttendance" onclick="switchTab('attendance')">📋 Attendance</button>
+      <button class="tab-btn" id="tabBtnOrganisations" style="display:none;" onclick="switchTab('organisations')">🏢 Organisations</button>
       <button class="tab-btn" id="tabBtnUsers" style="display:none;" onclick="switchTab('users')">👥 User Management</button>
       <button class="tab-btn" id="tabBtnReports" onclick="switchTab('reports')">📑 Reports & Exports</button>
     </div>
@@ -501,13 +513,14 @@
               <th>Roll Number</th>
               <th>Name</th>
               <th>Email</th>
+              <th>Organisation</th>
               <th>Semester</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
           </thead>
           <tbody id="studentsTableBody">
-            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading students...</td></tr>
+            <tr><td colspan="7" style="text-align:center; padding: 24px;">Loading students...</td></tr>
           </tbody>
         </table>
       </div>
@@ -1068,6 +1081,39 @@
 
     </div>
 
+    <!-- TAB: ORGANISATION MANAGEMENT (Admin Only) -->
+    <div id="tab-organisations" class="tab-content">
+      <div class="toolbar">
+        <div class="filters">
+          <input type="text" id="orgSearch" placeholder="Search organisations by name or code..." oninput="debounce(loadOrganisationsTable, 300)()" style="min-width: 280px;">
+          <select id="orgStatusFilter" onchange="loadOrganisationsTable()">
+            <option value="">All Statuses</option>
+            <option value="Active">Active</option>
+            <option value="Inactive">Inactive</option>
+          </select>
+        </div>
+        <button class="btn btn-primary" onclick="openAddOrgModal()">+ Add Organisation</button>
+      </div>
+
+      <div class="table-container">
+        <table>
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Code</th>
+              <th>Organisation / Institution Name</th>
+              <th>Status</th>
+              <th>Created Date</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="organisationsTableBody">
+            <tr><td colspan="6" style="text-align:center; padding: 24px;">Loading organisations...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- TAB 8: USER MANAGEMENT (Admin Only) -->
     <div id="tab-users" class="tab-content">
       <div class="toolbar">
@@ -1075,6 +1121,7 @@
           <select id="userRoleFilter" onchange="loadUsers()">
             <option value="">All Account Roles</option>
             <option value="Admin">Administrator</option>
+            <option value="Organisation">Organisation Manager</option>
             <option value="Faculty">Faculty</option>
             <option value="Student">Student</option>
           </select>
@@ -1260,6 +1307,65 @@
     </form>
   </dialog>
 
+  <!-- Add Organisation Dialog -->
+  <dialog id="addOrganisationDialog" style="max-width: 520px;">
+    <div class="dialog-header">
+      <h3>Register New Organisation</h3>
+      <button class="close-btn" onclick="document.getElementById('addOrganisationDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitAddOrg(event)">
+      <div class="form-group">
+        <label>Organisation Code * (Unique, e.g. VREC, MIT)</label>
+        <input type="text" name="code" id="addOrgCode" placeholder="e.g. VREC" required style="text-transform:uppercase;">
+      </div>
+      <div class="form-group">
+        <label>Organisation / Institution Name *</label>
+        <input type="text" name="name" id="addOrgName" placeholder="e.g. Vijay Rural Engineering College" required>
+      </div>
+      <div class="form-group">
+        <label>Status *</label>
+        <select name="status" id="addOrgStatus" required>
+          <option value="Active" selected>Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('addOrganisationDialog').close()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Create Organisation</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- Edit Organisation Dialog -->
+  <dialog id="editOrganisationDialog" style="max-width: 520px;">
+    <div class="dialog-header">
+      <h3>Edit Organisation Details</h3>
+      <button class="close-btn" onclick="document.getElementById('editOrganisationDialog').close()">✕</button>
+    </div>
+    <form onsubmit="submitEditOrg(event)">
+      <input type="hidden" id="editOrgId" name="id">
+      <div class="form-group">
+        <label>Organisation Code *</label>
+        <input type="text" name="code" id="editOrgCode" required style="text-transform:uppercase;">
+      </div>
+      <div class="form-group">
+        <label>Organisation Name *</label>
+        <input type="text" name="name" id="editOrgName" required>
+      </div>
+      <div class="form-group">
+        <label>Status *</label>
+        <select name="status" id="editOrgStatus" required>
+          <option value="Active">Active</option>
+          <option value="Inactive">Inactive</option>
+        </select>
+      </div>
+      <div class="form-actions">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('editOrganisationDialog').close()">Cancel</button>
+        <button type="submit" class="btn btn-primary">Update Organisation</button>
+      </div>
+    </form>
+  </dialog>
+
   <!-- Add Student Dialog -->
   <dialog id="addStudentDialog">
     <div class="dialog-header">
@@ -1267,6 +1373,11 @@
       <button class="close-btn" onclick="document.getElementById('addStudentDialog').close()">✕</button>
     </div>
     <form onsubmit="submitStudent(event)">
+      <div class="form-group" id="addStudentOrgGroup">
+        <label>Organisation *</label>
+        <select name="organisation_id" id="addStudentOrgSelect" required></select>
+        <div id="addStudentOrgFixed" style="display:none; font-weight:600; padding:8px 12px; background:#f1f5f9; border-radius:6px; border:1px solid #cbd5e1; color:#334155;"></div>
+      </div>
       <div class="form-group"><label>Roll Number *</label><input type="text" name="roll_number" required></div>
       <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
         <div class="form-group"><label>First Name *</label><input type="text" name="first_name" required></div>
@@ -1548,6 +1659,11 @@
     </div>
     <form onsubmit="submitEditStudent(event)">
       <input type="hidden" id="editStudentId" name="student_id">
+      <div class="form-group" id="editStudentOrgGroup">
+        <label>Organisation</label>
+        <select name="organisation_id" id="editStudentOrgSelect"></select>
+        <div id="editStudentOrgFixed" style="display:none; font-weight:600; padding:8px 12px; background:#f1f5f9; border-radius:6px; border:1px solid #cbd5e1; color:#334155;"></div>
+      </div>
       <div class="form-group">
         <label>Roll Number *</label>
         <input type="text" id="editStudentRoll" name="roll_number" required>
@@ -1814,6 +1930,7 @@
   <script>
     let currentUser = null;
     let authToken = localStorage.getItem('sms_auth_token') || '';
+    let currentActiveTab = 'analytics';
 
     function authFetch(url, options = {}) {
       options.headers = options.headers || {};
@@ -1895,10 +2012,49 @@
       }
     }
 
-    function triggerAddStudent() {
-      if (!currentUser) {
-        openAuthModal({ action: 'Manage Students', message: 'Please sign in with an authorized administrator account to add student records.', nextUrl: '/dashboard#students' });
+    async function setupAddStudentOrgField() {
+      const isSuperOrAdmin = currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Super Admin');
+      const select = document.getElementById('addStudentOrgSelect');
+      const fixed = document.getElementById('addStudentOrgFixed');
+      if (!select || !fixed) return;
+
+      if (isSuperOrAdmin) {
+        select.style.display = 'block';
+        select.removeAttribute('disabled');
+        fixed.style.display = 'none';
+        try {
+          const res = await authFetch('/api/v1/organisations');
+          const json = await res.json();
+          select.innerHTML = '<option value="">-- Select Organisation --</option>';
+          if (json.success && Array.isArray(json.data)) {
+            json.data.forEach(org => {
+              const opt = document.createElement('option');
+              opt.value = org.id;
+              opt.textContent = `🏢 ${org.name} (${org.code})`;
+              if (currentUser.selected_organisation_id && parseInt(currentUser.selected_organisation_id) === org.id) {
+                opt.selected = true;
+              }
+              select.appendChild(opt);
+            });
+          }
+        } catch (e) {
+          console.error('Error fetching organisations for student add:', e);
+        }
       } else {
+        // Organisation user: read-only assigned organisation
+        select.style.display = 'none';
+        select.setAttribute('disabled', 'true');
+        fixed.style.display = 'block';
+        const orgName = (currentUser.selected_organisation && currentUser.selected_organisation.name) || 'Assigned Organisation';
+        fixed.textContent = `🏢 ${orgName} (Assigned)`;
+      }
+    }
+
+    async function triggerAddStudent() {
+      if (!currentUser) {
+        openAuthModal({ action: 'Manage Students', message: 'Please sign in with an authorized account to add student records.', nextUrl: '/dashboard#students' });
+      } else {
+        await setupAddStudentOrgField();
         document.getElementById('addStudentDialog').showModal();
       }
     }
@@ -1979,6 +2135,11 @@
     function initGuestMode() {
       currentUser = null;
 
+      const orgWrapper = document.getElementById('orgSelectorWrapper');
+      if (orgWrapper) orgWrapper.style.display = 'none';
+      const userOrgBadge = document.getElementById('userOrgBadge');
+      if (userOrgBadge) userOrgBadge.style.display = 'none';
+
       document.getElementById('userStatusText').textContent = 'Browsing as Guest';
       const badge = document.getElementById('userRoleBadge');
       badge.textContent = 'Guest Mode';
@@ -2000,6 +2161,7 @@
       document.getElementById('tabBtnMarks').style.display = 'inline-block';
       document.getElementById('tabBtnAttendance').style.display = 'inline-block';
       document.getElementById('tabBtnAttendance').textContent = '📍 GPS Attendance';
+      if (document.getElementById('tabBtnOrganisations')) document.getElementById('tabBtnOrganisations').style.display = 'none';
       document.getElementById('tabBtnUsers').style.display = 'none';
       document.getElementById('tabBtnReports').style.display = 'inline-block';
 
@@ -2086,18 +2248,46 @@
       badge.textContent = user.role;
       badge.className = `role-badge role-${user.role.toLowerCase()}`;
 
+      // Organisation Selector & RBAC UI handling
+      const orgWrapper = document.getElementById('orgSelectorWrapper');
+      const userOrgBadge = document.getElementById('userOrgBadge');
+
+      if (user.can_select_organisation) {
+        if (userOrgBadge) userOrgBadge.style.display = 'none';
+        if (orgWrapper) {
+          orgWrapper.style.display = 'inline-flex';
+          populateOrgSelector(user.selected_organisation_id);
+        }
+      } else {
+        if (orgWrapper) orgWrapper.style.display = 'none';
+        if (userOrgBadge) {
+          const orgName = (user.selected_organisation && user.selected_organisation.name) || '';
+          if (orgName) {
+            userOrgBadge.textContent = `🏢 ${orgName}`;
+            userOrgBadge.style.display = 'inline-block';
+          } else {
+            userOrgBadge.style.display = 'none';
+          }
+        }
+      }
+
       const role = user.role;
+      const isOrgOrAdmin = (role === 'Admin' || role === 'Super Admin' || role === 'Organisation' || role === 'Organization');
 
       // Role-specific tab visibility
       document.getElementById('tabBtnAnalytics').textContent = role === 'Student' ? '📊 My Performance' : '📊 Dashboard';
       document.getElementById('tabBtnProfile').style.display = role === 'Student' ? 'inline-block' : 'none';
-      document.getElementById('tabBtnStudents').style.display = role === 'Admin' ? 'inline-block' : (role === 'Faculty' ? 'inline-block' : 'none');
-      document.getElementById('tabBtnFaculty').style.display = role === 'Admin' ? 'inline-block' : 'none';
-      document.getElementById('tabBtnSubjects').style.display = role === 'Admin' ? 'inline-block' : (role === 'Faculty' ? 'inline-block' : 'none');
-      document.getElementById('tabBtnSemesters').style.display = role === 'Admin' ? 'inline-block' : 'none';
+      document.getElementById('tabBtnStudents').style.display = isOrgOrAdmin ? 'inline-block' : (role === 'Faculty' ? 'inline-block' : 'none');
+      document.getElementById('tabBtnFaculty').style.display = isOrgOrAdmin ? 'inline-block' : 'none';
+      document.getElementById('tabBtnSubjects').style.display = isOrgOrAdmin ? 'inline-block' : (role === 'Faculty' ? 'inline-block' : 'none');
+      document.getElementById('tabBtnSemesters').style.display = isOrgOrAdmin ? 'inline-block' : 'none';
       document.getElementById('tabBtnMarks').style.display = 'inline-block';
       document.getElementById('tabBtnAttendance').style.display = 'inline-block';
-      document.getElementById('tabBtnUsers').style.display = role === 'Admin' ? 'inline-block' : 'none';
+      const isSuperOrAdmin = (role === 'Admin' || role === 'Super Admin');
+      if (document.getElementById('tabBtnOrganisations')) {
+        document.getElementById('tabBtnOrganisations').style.display = isSuperOrAdmin ? 'inline-block' : 'none';
+      }
+      document.getElementById('tabBtnUsers').style.display = isOrgOrAdmin ? 'inline-block' : 'none';
       document.getElementById('tabBtnReports').style.display = 'inline-block';
 
       // Tab label for Attendance
@@ -2114,15 +2304,15 @@
       const admView = document.getElementById('attendanceAdminView');
       if (stuView) stuView.style.display = (role === 'Student') ? 'block' : 'none';
       if (facView) facView.style.display = (role === 'Faculty') ? 'block' : 'none';
-      if (admView) admView.style.display = (role === 'Admin') ? 'block' : 'none';
+      if (admView) admView.style.display = isOrgOrAdmin ? 'block' : 'none';
 
       // Role-specific action buttons
-      document.getElementById('addStudentBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
-      document.getElementById('addFacultyBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
-      document.getElementById('addSubjectBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
-      document.getElementById('addSemesterBtn').style.display = role === 'Admin' ? 'inline-flex' : 'none';
-      document.getElementById('addMarkBtn').style.display = (role === 'Admin' || role === 'Faculty') ? 'inline-flex' : 'none';
-      document.getElementById('addAttendanceBtn').style.display = (role === 'Admin' || role === 'Faculty') ? 'inline-flex' : 'none';
+      document.getElementById('addStudentBtn').style.display = isOrgOrAdmin ? 'inline-flex' : 'none';
+      document.getElementById('addFacultyBtn').style.display = isOrgOrAdmin ? 'inline-flex' : 'none';
+      document.getElementById('addSubjectBtn').style.display = isOrgOrAdmin ? 'inline-flex' : 'none';
+      document.getElementById('addSemesterBtn').style.display = isOrgOrAdmin ? 'inline-flex' : 'none';
+      document.getElementById('addMarkBtn').style.display = (isOrgOrAdmin || role === 'Faculty') ? 'inline-flex' : 'none';
+      document.getElementById('addAttendanceBtn').style.display = (isOrgOrAdmin || role === 'Faculty') ? 'inline-flex' : 'none';
 
       // Role-specific reports adjustments
       if (role === 'Student') {
@@ -2134,7 +2324,7 @@
 
       loadAnalytics();
       populateDropdowns();
-      if (role === 'Admin') {
+      if (isOrgOrAdmin) {
         loadUsers();
         initAdminAttendanceUI();
       }
@@ -2159,8 +2349,61 @@
       switchTab('analytics');
     }
 
+    async function populateOrgSelector(currentSelectedId) {
+      try {
+        const res = await authFetch('/api/v1/organisations');
+        const json = await res.json();
+        const select = document.getElementById('superAdminOrgSelect');
+        if (!select) return;
+
+        select.innerHTML = '<option value="">🌐 All Organisations (Global)</option>';
+        if (json.success && Array.isArray(json.data)) {
+          json.data.forEach(org => {
+            const opt = document.createElement('option');
+            opt.value = org.id;
+            opt.textContent = `🏢 ${org.name} (${org.code})`;
+            if (currentSelectedId && parseInt(currentSelectedId) === org.id) {
+              opt.selected = true;
+            }
+            select.appendChild(opt);
+          });
+        }
+      } catch (e) {
+        console.error('Failed to load organisations for selector:', e);
+      }
+    }
+
+    async function onSuperAdminOrgChange(orgId) {
+      try {
+        const payload = { organisation_id: orgId ? parseInt(orgId) : null };
+        const res = await authFetch('/api/v1/organisations/select', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast(json.message || 'Organisation context updated.');
+          if (currentUser) {
+            currentUser.selected_organisation_id = payload.organisation_id;
+          }
+          // Refresh views with newly selected organization context
+          loadAnalytics();
+          populateDropdowns();
+          if (typeof currentActiveTab !== 'undefined' && currentActiveTab) {
+            switchTab(currentActiveTab);
+          }
+        } else {
+          showToast(json.error?.message || 'Failed to select organisation.');
+        }
+      } catch (e) {
+        showToast('Network error while selecting organisation.');
+      }
+    }
+
     // Tab switcher
     function switchTab(tabId) {
+      currentActiveTab = tabId;
       if (!currentUser) {
         if (tabId === 'attendance') {
           openAuthModal({
@@ -2249,7 +2492,7 @@
         if (currentUser) {
           if (currentUser.role === 'Student') initStudentAttendanceUI(currentUser);
           else if (currentUser.role === 'Faculty') initFacultyAttendanceUI(currentUser);
-          else if (currentUser.role === 'Admin') {
+          else if (currentUser.role === 'Admin' || currentUser.role === 'Super Admin' || currentUser.role === 'Organisation' || currentUser.role === 'Organization') {
             initAdminAttendanceUI();
             loadAttendance();
           }
@@ -2257,6 +2500,7 @@
           renderGuestAttendanceView();
         }
       }
+      if (tabId === 'organisations') loadOrganisationsTable();
       if (tabId === 'users') loadUsers();
     }
 
@@ -2497,6 +2741,186 @@
       }
     }
 
+    // ==========================================
+    // ORGANISATIONS CRUD & MANAGEMENT (Admin)
+    // ==========================================
+    async function loadOrganisationsTable() {
+      const search = (document.getElementById('orgSearch')?.value || '').trim().toLowerCase();
+      const statusFilter = document.getElementById('orgStatusFilter')?.value || '';
+      const tbody = document.getElementById('organisationsTableBody');
+      if (!tbody) return;
+
+      try {
+        const res = await authFetch('/api/v1/organisations');
+        const json = await res.json();
+        if (!json.success || !Array.isArray(json.data) || !json.data.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No organisations found.</td></tr>';
+          return;
+        }
+
+        let orgs = json.data;
+        if (search) {
+          orgs = orgs.filter(o => o.name.toLowerCase().includes(search) || o.code.toLowerCase().includes(search));
+        }
+        if (statusFilter) {
+          orgs = orgs.filter(o => o.status.toLowerCase() === statusFilter.toLowerCase());
+        }
+
+        if (!orgs.length) {
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No organisations matching filter criteria.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = orgs.map(o => `
+          <tr>
+            <td><strong>#${o.id}</strong></td>
+            <td><span class="badge" style="background:#f1f5f9; color:#0f172a; font-weight:700;">${o.code}</span></td>
+            <td><strong>${o.name}</strong></td>
+            <td>
+              <span class="badge ${o.status === 'Active' ? 'badge-active' : 'badge-suspended'}">
+                ${o.status}
+              </span>
+            </td>
+            <td>${o.created_at ? o.created_at.substring(0, 10) : 'N/A'}</td>
+            <td>
+              <button class="btn btn-secondary btn-sm" onclick="openEditOrgModal(${o.id})">Edit</button>
+              <button class="btn btn-sm ${o.status === 'Active' ? 'btn-secondary' : 'btn-success'}" onclick="toggleOrgStatus(${o.id}, '${o.status === 'Active' ? 'Inactive' : 'Active'}')">
+                ${o.status === 'Active' ? 'Deactivate' : 'Activate'}
+              </button>
+              ${o.id !== 1 ? `
+                <button class="btn btn-danger btn-sm" onclick="deleteOrg(${o.id}, '${o.name}')">Delete</button>
+              ` : ''}
+            </td>
+          </tr>
+        `).join('');
+      } catch (err) {
+        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--danger);">Failed to load organisations.</td></tr>';
+      }
+    }
+
+    function openAddOrgModal() {
+      document.getElementById('addOrgCode').value = '';
+      document.getElementById('addOrgName').value = '';
+      document.getElementById('addOrgStatus').value = 'Active';
+      document.getElementById('addOrganisationDialog').showModal();
+    }
+
+    async function submitAddOrg(e) {
+      e.preventDefault();
+      const code = document.getElementById('addOrgCode').value.trim().toUpperCase();
+      const name = document.getElementById('addOrgName').value.trim();
+      const status = document.getElementById('addOrgStatus').value;
+
+      try {
+        const res = await authFetch('/api/v1/organisations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, name, status })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Organisation registered successfully!');
+          document.getElementById('addOrganisationDialog').close();
+          loadOrganisationsTable();
+          if (currentUser && currentUser.can_select_organisation) {
+            populateOrgSelector(currentUser.selected_organisation_id);
+          }
+        } else {
+          showToast(json.error ? json.error.message : 'Error creating organisation', true);
+        }
+      } catch (err) {
+        showToast('Network error creating organisation', true);
+      }
+    }
+
+    async function openEditOrgModal(id) {
+      try {
+        const res = await authFetch(`/api/v1/organisations/${id}`);
+        const json = await res.json();
+        if (!json.success || !json.data) {
+          showToast(json.error ? json.error.message : 'Failed to fetch organisation details', true);
+          return;
+        }
+        const o = json.data;
+        document.getElementById('editOrgId').value = o.id;
+        document.getElementById('editOrgCode').value = o.code;
+        document.getElementById('editOrgName').value = o.name;
+        document.getElementById('editOrgStatus').value = o.status || 'Active';
+        document.getElementById('editOrganisationDialog').showModal();
+      } catch (err) {
+        showToast('Network error loading organisation details', true);
+      }
+    }
+
+    async function submitEditOrg(e) {
+      e.preventDefault();
+      const id = document.getElementById('editOrgId').value;
+      const code = document.getElementById('editOrgCode').value.trim().toUpperCase();
+      const name = document.getElementById('editOrgName').value.trim();
+      const status = document.getElementById('editOrgStatus').value;
+
+      try {
+        const res = await authFetch(`/api/v1/organisations/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code, name, status })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Organisation updated successfully!');
+          document.getElementById('editOrganisationDialog').close();
+          loadOrganisationsTable();
+          if (currentUser && currentUser.can_select_organisation) {
+            populateOrgSelector(currentUser.selected_organisation_id);
+          }
+        } else {
+          showToast(json.error ? json.error.message : 'Update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error updating organisation', true);
+      }
+    }
+
+    async function toggleOrgStatus(id, newStatus) {
+      try {
+        const res = await authFetch(`/api/v1/organisations/${id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: newStatus })
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast(`Organisation status updated to ${newStatus}.`);
+          loadOrganisationsTable();
+        } else {
+          showToast(json.error ? json.error.message : 'Status update failed', true);
+        }
+      } catch (err) {
+        showToast('Network error updating organisation status', true);
+      }
+    }
+
+    async function deleteOrg(id, name) {
+      if (!confirm(`Are you sure you want to delete organisation '${name}' (ID: ${id})?\n\nNote: If this organisation has existing students or records, deletion will be blocked and deactivation is recommended.`)) {
+        return;
+      }
+      try {
+        const res = await authFetch(`/api/v1/organisations/${id}`, { method: 'DELETE' });
+        const json = await res.json();
+        if (json.success) {
+          showToast('Organisation deleted successfully!');
+          loadOrganisationsTable();
+          if (currentUser && currentUser.can_select_organisation) {
+            populateOrgSelector(currentUser.selected_organisation_id);
+          }
+        } else {
+          showToast(json.error ? json.error.message : 'Deletion failed', true);
+        }
+      } catch (err) {
+        showToast('Network error deleting organisation', true);
+      }
+    }
+
     // USER MANAGEMENT CRUD (Admin only)
     async function loadUsers() {
       if (!currentUser || currentUser.role !== 'Admin') return;
@@ -2532,6 +2956,24 @@
     }
 
     function openCreateUserModal() {
+      const roleSelect = document.getElementById('createUserRole');
+      if (roleSelect && currentUser) {
+        if (currentUser.role === 'Organisation' || currentUser.role === 'Organization') {
+          roleSelect.innerHTML = `
+            <option value="Student" selected>🎓 Student</option>
+            <option value="Faculty">👨‍🏫 Faculty</option>
+            <option value="Organisation">🏢 Organisation Manager</option>
+          `;
+        } else {
+          roleSelect.innerHTML = `
+            <option value="Student" selected>🎓 Student</option>
+            <option value="Faculty">👨‍🏫 Faculty</option>
+            <option value="Organisation">🏢 Organisation Manager</option>
+            <option value="Admin">👑 Administrator</option>
+          `;
+        }
+      }
+      toggleCreateUserRoleFields();
       document.getElementById('createUserDialog').showModal();
     }
 
@@ -2605,21 +3047,22 @@
       const tbody = document.getElementById('studentsTableBody');
 
       if (!json.success || !json.data.length) {
-        tbody.innerHTML = '<tr><td colspan="6" style="text-align:center; padding: 24px; color: var(--text-muted);">No students found matching current criteria.</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding: 24px; color: var(--text-muted);">No students found matching current criteria.</td></tr>';
         return;
       }
 
-      const isAdmin = currentUser && currentUser.role === 'Admin';
+      const canManage = currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Super Admin' || currentUser.role === 'Organisation' || currentUser.role === 'Organization');
       tbody.innerHTML = json.data.map(s => `
         <tr>
           <td><strong>${s.roll_number}</strong></td>
           <td>${s.first_name} ${s.last_name}</td>
           <td>${s.email}</td>
+          <td><span class="badge" style="background:#e0f2fe; color:#0369a1; font-size:0.75rem;">${s.organisation_name || s.organisation_code || 'VREC'}</span></td>
           <td>${s.current_semester_name || '<span style="color:var(--text-muted)">None</span>'}</td>
           <td><span class="badge badge-${s.status.toLowerCase()}">${s.status}</span></td>
           <td>
             <a class="btn btn-secondary btn-sm" href="/api/v1/reports/student/${s.id}?format=pdf" target="_blank">PDF</a>
-            ${isAdmin ? `
+            ${canManage ? `
               <button class="btn btn-secondary btn-sm" onclick="openEditStudentModal(${s.id})">Edit</button>
               <button class="btn btn-danger btn-sm" onclick="confirmDelete('student', ${s.id}, '${s.roll_number} - ${s.first_name} ${s.last_name}')">Delete</button>
             ` : ''}
@@ -2640,6 +3083,9 @@
         gender: form.gender.value,
         current_semester_id: form.current_semester_id.value ? parseInt(form.current_semester_id.value) : null
       };
+      if (form.organisation_id && !form.organisation_id.disabled && form.organisation_id.value) {
+        data.organisation_id = parseInt(form.organisation_id.value);
+      }
       const res = await authFetch('/api/v1/students', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -3873,16 +4319,19 @@
     // 1. Student Edit
     async function openEditStudentModal(id) {
       try {
-        const [stuRes, semRes] = await Promise.all([
+        const [stuRes, semRes, orgRes] = await Promise.all([
           authFetch(`/api/v1/students/${id}`),
-          authFetch('/api/v1/semesters')
+          authFetch('/api/v1/semesters'),
+          authFetch('/api/v1/organisations')
         ]);
         const stuJson = await stuRes.json();
         const semJson = await semRes.json();
+        const orgJson = await orgRes.json();
         if (!stuJson.success) { showToast(stuJson.error ? stuJson.error.message : 'Error fetching student', true); return; }
 
         const s = stuJson.data;
         const sems = semJson.data || [];
+        const orgs = (orgJson && orgJson.data) || [];
 
         if (document.getElementById('editStudentId')) document.getElementById('editStudentId').value = s.id;
         if (document.getElementById('editStudentRoll')) document.getElementById('editStudentRoll').value = s.roll_number;
@@ -3897,6 +4346,25 @@
         const sel = document.getElementById('editStudentSemester');
         if (sel) {
           sel.innerHTML = '<option value="">-- None --</option>' + sems.map(sm => `<option value="${sm.id}" ${sm.id === s.current_semester_id ? 'selected' : ''}>${sm.name} (${sm.academic_year})</option>`).join('');
+        }
+
+        // Organisation field for Edit Student
+        const isSuperOrAdmin = currentUser && (currentUser.role === 'Admin' || currentUser.role === 'Super Admin');
+        const orgSelect = document.getElementById('editStudentOrgSelect');
+        const orgFixed = document.getElementById('editStudentOrgFixed');
+        if (orgSelect && orgFixed) {
+          if (isSuperOrAdmin) {
+            orgSelect.style.display = 'block';
+            orgSelect.removeAttribute('disabled');
+            orgFixed.style.display = 'none';
+            orgSelect.innerHTML = orgs.map(o => `<option value="${o.id}" ${o.id === s.organisation_id ? 'selected' : ''}>🏢 ${o.name} (${o.code})</option>`).join('');
+          } else {
+            // Organisation user: read-only, cannot reassign
+            orgSelect.style.display = 'none';
+            orgSelect.setAttribute('disabled', 'true');
+            orgFixed.style.display = 'block';
+            orgFixed.textContent = `🏢 ${s.organisation_name || s.organisation_code || 'Assigned Organisation'} (Fixed)`;
+          }
         }
 
         document.getElementById('editStudentDialog').showModal();
@@ -3921,6 +4389,10 @@
         status: form.status.value,
         current_semester_id: form.current_semester_id.value ? parseInt(form.current_semester_id.value) : null
       };
+
+      if (form.organisation_id && !form.organisation_id.disabled && form.organisation_id.value) {
+        data.organisation_id = parseInt(form.organisation_id.value);
+      }
 
       try {
         const res = await authFetch(`/api/v1/students/${id}`, {
@@ -4231,6 +4703,25 @@
         if (document.getElementById('editUserId')) document.getElementById('editUserId').value = u.id;
         if (document.getElementById('editUserUsername')) document.getElementById('editUserUsername').value = u.username;
         if (document.getElementById('editUserEmail')) document.getElementById('editUserEmail').value = u.email;
+
+        const roleSel = document.getElementById('editUserRole');
+        if (roleSel && currentUser) {
+          if (currentUser.role === 'Organisation' || currentUser.role === 'Organization') {
+            roleSel.innerHTML = `
+              <option value="Student">Student</option>
+              <option value="Faculty">Faculty</option>
+              <option value="Organisation">Organisation Manager</option>
+            `;
+          } else {
+            roleSel.innerHTML = `
+              <option value="Student">Student</option>
+              <option value="Faculty">Faculty</option>
+              <option value="Organisation">Organisation Manager</option>
+              <option value="Admin">Administrator</option>
+            `;
+          }
+        }
+
         if (document.getElementById('editUserRole')) document.getElementById('editUserRole').value = u.role;
         if (document.getElementById('editUserStatus')) document.getElementById('editUserStatus').value = u.is_active ? '1' : '0';
         if (document.getElementById('editUserPassword')) document.getElementById('editUserPassword').value = '';

@@ -19,6 +19,7 @@ from app.api import (
     faculty_bp,
     analytics_bp,
     gps_attendance_bp,
+    organisations_bp,
 )
 
 
@@ -39,6 +40,15 @@ def create_app(config_name: str = "development") -> Flask:
     app.register_blueprint(faculty_bp)
     app.register_blueprint(analytics_bp)
     app.register_blueprint(gps_attendance_bp)
+    app.register_blueprint(organisations_bp)
+
+    # HTTP Security Headers
+    @app.after_request
+    def set_security_headers(response):
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        response.headers["X-Frame-Options"] = "SAMEORIGIN"
+        response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        return response
 
     # Health & System Status Endpoints
     @app.route("/", methods=["GET"])
@@ -51,11 +61,12 @@ def create_app(config_name: str = "development") -> Flask:
         return api_response(
             data={
                 "name": "Student Management System API",
-                "version": "2.0.0",
+                "version": "3.0.0",
                 "status": "operational",
                 "dashboard": "/dashboard",
                 "endpoints": {
                     "auth": "/api/v1/auth",
+                    "organisations": "/api/v1/organisations",
                     "students": "/api/v1/students",
                     "faculty": "/api/v1/faculty",
                     "subjects": "/api/v1/subjects",
@@ -66,7 +77,7 @@ def create_app(config_name: str = "development") -> Flask:
                     "analytics": "/api/v1/analytics",
                 },
             },
-            message="Welcome to Student Management System API V2",
+            message="Welcome to Student Management System API V3 (Multi-Organisation)",
         )
 
     @app.route("/dashboard", methods=["GET"])
@@ -77,13 +88,19 @@ def create_app(config_name: str = "development") -> Flask:
 
     @app.route("/register", methods=["GET", "POST"])
     @app.route("/register.html", methods=["GET"])
-    @roles_required("Admin")
+    @roles_required("Admin", "Super Admin", "Organisation")
     def register_page():
-        """Administrator-only: Render or submit registration."""
+        """Administrator & Organisation: Render or submit registration."""
         if request.method == "POST":
+            from app.utils.auth import get_current_user
+            current_user = get_current_user()
             payload = request.get_json(silent=True) or request.form.to_dict()
-            user = AuthService.register_user(payload, requested_by_role="Admin")
-            return api_response(data=user, message="User account registered successfully by administrator.", status_code=201)
+            user = AuthService.register_user(
+                payload,
+                requested_by_role=current_user["role"],
+                requested_by_user=current_user,
+            )
+            return api_response(data=user, message="User account registered successfully.", status_code=201)
         return render_template("register.html")
 
     @app.route("/signup", methods=["GET", "POST"])

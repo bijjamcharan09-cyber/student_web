@@ -1,5 +1,5 @@
 """
-Attendance repository for data access operations.
+Attendance repository for data access operations with organisation scoping.
 """
 
 from typing import Any, Dict, List, Optional
@@ -11,19 +11,29 @@ class AttendanceRepository:
 
     @staticmethod
     def create(data: Dict[str, Any]) -> int:
+        payload = {
+            "organisation_id": int(data.get("organisation_id") or 1),
+            "student_id": data.get("student_id"),
+            "subject_id": data.get("subject_id"),
+            "date": data.get("date"),
+            "status": data.get("status", "Present"),
+            "remarks": data.get("remarks"),
+        }
         sql = """
-            INSERT INTO attendance (student_id, subject_id, date, status, remarks)
-            VALUES (%(student_id)s, %(subject_id)s, %(date)s, %(status)s, %(remarks)s)
+            INSERT INTO attendance (organisation_id, student_id, subject_id, date, status, remarks)
+            VALUES (%(organisation_id)s, %(student_id)s, %(subject_id)s, %(date)s, %(status)s, %(remarks)s)
         """
-        return db.execute_insert(sql, data)
+        return db.execute_insert(sql, payload)
 
     @staticmethod
     def get_by_id(attendance_id: int) -> Optional[Dict[str, Any]]:
         sql = """
             SELECT a.*,
                    s.roll_number, s.first_name, s.last_name,
-                   sub.subject_code, sub.name AS subject_name
+                   sub.subject_code, sub.name AS subject_name,
+                   org.name AS organisation_name, org.code AS organisation_code
             FROM attendance a
+            LEFT JOIN organisations org ON a.organisation_id = org.id
             JOIN students s ON a.student_id = s.id
             JOIN subjects sub ON a.subject_id = sub.id
             WHERE a.id = %s
@@ -65,6 +75,7 @@ class AttendanceRepository:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         status: Optional[str] = None,
+        organisation_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
         limit: int = 50,
@@ -72,6 +83,10 @@ class AttendanceRepository:
     ) -> List[Dict[str, Any]]:
         conditions = []
         params: List[Any] = []
+
+        if organisation_id is not None:
+            conditions.append("a.organisation_id = %s")
+            params.append(organisation_id)
 
         if student_id:
             conditions.append("a.student_id = %s")
@@ -116,8 +131,10 @@ class AttendanceRepository:
         sql = f"""
             SELECT a.*,
                    s.roll_number, s.first_name, s.last_name,
-                   sub.subject_code, sub.name AS subject_name
+                   sub.subject_code, sub.name AS subject_name,
+                   org.name AS organisation_name, org.code AS organisation_code
             FROM attendance a
+            LEFT JOIN organisations org ON a.organisation_id = org.id
             JOIN students s ON a.student_id = s.id
             JOIN subjects sub ON a.subject_id = sub.id
             {where_clause}
@@ -134,9 +151,14 @@ class AttendanceRepository:
         date_from: Optional[str] = None,
         date_to: Optional[str] = None,
         status: Optional[str] = None,
+        organisation_id: Optional[int] = None,
     ) -> int:
         conditions = []
         params: List[Any] = []
+
+        if organisation_id is not None:
+            conditions.append("a.organisation_id = %s")
+            params.append(organisation_id)
 
         if student_id:
             conditions.append("a.student_id = %s")

@@ -1,5 +1,5 @@
 """
-Marks service handling grading, marks recording, transactions, and GPA calculation.
+Marks service handling grading, marks recording, transactions, and GPA calculation with organisation scoping.
 """
 
 from typing import Any, Dict, List, Optional
@@ -68,13 +68,28 @@ class MarkService:
     def record_mark(data: Dict[str, Any]) -> Dict[str, Any]:
         cleaned = validate_mark_payload(data, is_update=False)
 
-        # Verify existence
-        if not StudentRepository.get_by_id(cleaned["student_id"]):
+        student = StudentRepository.get_by_id(cleaned["student_id"])
+        if not student:
             raise NotFoundError(f"Student with ID {cleaned['student_id']} does not exist.")
-        if not SubjectRepository.get_by_id(cleaned["subject_id"]):
+
+        subject = SubjectRepository.get_by_id(cleaned["subject_id"])
+        if not subject:
             raise NotFoundError(f"Subject with ID {cleaned['subject_id']} does not exist.")
-        if not SemesterRepository.get_by_id(cleaned["semester_id"]):
+
+        semester = SemesterRepository.get_by_id(cleaned["semester_id"])
+        if not semester:
             raise NotFoundError(f"Semester with ID {cleaned['semester_id']} does not exist.")
+
+        # Prevent cross-organisation relationship
+        if (
+            int(student["organisation_id"]) != int(subject["organisation_id"])
+            or int(student["organisation_id"]) != int(semester["organisation_id"])
+        ):
+            raise ValidationError(
+                "Cross-organisation record prohibited: Student, Subject, and Semester must belong to the same organisation."
+            )
+
+        cleaned["organisation_id"] = int(student["organisation_id"])
 
         # Check unique constraint
         existing = MarkRepository.get_existing(
@@ -93,7 +108,7 @@ class MarkService:
         return enrich_mark(MarkRepository.get_by_id(mark_id))
 
     @staticmethod
-    def batch_record_marks(records: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    def batch_record_marks(records: List[Dict[str, Any]], expected_org_id: Optional[int] = None) -> List[Dict[str, Any]]:
         """
         Record multiple marks in an atomic transaction.
         If any single record fails validation or insertion, all are rolled back.
@@ -105,9 +120,36 @@ class MarkService:
         for i, item in enumerate(records):
             try:
                 cleaned = validate_mark_payload(item, is_update=False)
+
+                student = StudentRepository.get_by_id(cleaned["student_id"])
+                if not student:
+                    raise NotFoundError(f"Student with ID {cleaned['student_id']} does not exist.")
+
+                subject = SubjectRepository.get_by_id(cleaned["subject_id"])
+                if not subject:
+                    raise NotFoundError(f"Subject with ID {cleaned['subject_id']} does not exist.")
+
+                semester = SemesterRepository.get_by_id(cleaned["semester_id"])
+                if not semester:
+                    raise NotFoundError(f"Semester with ID {cleaned['semester_id']} does not exist.")
+
+                if (
+                    int(student["organisation_id"]) != int(subject["organisation_id"])
+                    or int(student["organisation_id"]) != int(semester["organisation_id"])
+                ):
+                    raise ValidationError(
+                        f"Item {i}: Cross-organisation reference prohibited across student, subject, and semester."
+                    )
+
+                if expected_org_id is not None and int(student["organisation_id"]) != int(expected_org_id):
+                    raise ValidationError(
+                        f"Item {i}: Student belongs to another organisation."
+                    )
+
+                cleaned["organisation_id"] = int(student["organisation_id"])
                 validated_records.append(cleaned)
-            except ValidationError as e:
-                raise ValidationError(f"Batch item at index {i} invalid: {e.message}", details=e.details)
+            except (ValidationError, NotFoundError, ConflictError) as e:
+                raise ValidationError(f"Batch item at index {i} invalid: {getattr(e, 'message', str(e))}")
 
         inserted_ids = []
         with db.transaction() as cursor:
@@ -129,11 +171,12 @@ class MarkService:
                 cursor.execute(
                     """
                     INSERT INTO marks (
-                        student_id, subject_id, semester_id, exam_type,
+                        organisation_id, student_id, subject_id, semester_id, exam_type,
                         marks_obtained, max_marks, remarks
-                    ) VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
                     """,
                     (
+                        item["organisation_id"],
                         item["student_id"],
                         item["subject_id"],
                         item["semester_id"],
@@ -194,6 +237,7 @@ class MarkService:
         subject_id: Optional[int] = None,
         semester_id: Optional[int] = None,
         exam_type: Optional[str] = None,
+        organisation_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
         page: int = 1,
@@ -205,6 +249,7 @@ class MarkService:
             subject_id=subject_id,
             semester_id=semester_id,
             exam_type=exam_type,
+            organisation_id=organisation_id,
             sort_by=sort_by,
             order=order,
             limit=per_page,
@@ -216,6 +261,7 @@ class MarkService:
             subject_id=subject_id,
             semester_id=semester_id,
             exam_type=exam_type,
+            organisation_id=organisation_id,
         )
         total_pages = math.ceil(total / per_page) if total > 0 else 1
 

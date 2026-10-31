@@ -1,5 +1,5 @@
 """
-Marks and grades repository for data access operations.
+Marks and grades repository for data access operations with organisation scoping.
 """
 
 from typing import Any, Dict, List, Optional
@@ -11,16 +11,26 @@ class MarkRepository:
 
     @staticmethod
     def create(data: Dict[str, Any]) -> int:
+        payload = {
+            "organisation_id": int(data.get("organisation_id") or 1),
+            "student_id": data.get("student_id"),
+            "subject_id": data.get("subject_id"),
+            "semester_id": data.get("semester_id"),
+            "exam_type": data.get("exam_type"),
+            "marks_obtained": data.get("marks_obtained"),
+            "max_marks": data.get("max_marks", 100.0),
+            "remarks": data.get("remarks"),
+        }
         sql = """
             INSERT INTO marks (
-                student_id, subject_id, semester_id, exam_type,
+                organisation_id, student_id, subject_id, semester_id, exam_type,
                 marks_obtained, max_marks, remarks
             ) VALUES (
-                %(student_id)s, %(subject_id)s, %(semester_id)s, %(exam_type)s,
+                %(organisation_id)s, %(student_id)s, %(subject_id)s, %(semester_id)s, %(exam_type)s,
                 %(marks_obtained)s, %(max_marks)s, %(remarks)s
             )
         """
-        return db.execute_insert(sql, data)
+        return db.execute_insert(sql, payload)
 
     @staticmethod
     def get_by_id(mark_id: int) -> Optional[Dict[str, Any]]:
@@ -28,8 +38,10 @@ class MarkRepository:
             SELECT m.*,
                    s.roll_number, s.first_name, s.last_name,
                    sub.subject_code, sub.name AS subject_name, sub.credits,
-                   sem.name AS semester_name
+                   sem.name AS semester_name,
+                   org.name AS organisation_name, org.code AS organisation_code
             FROM marks m
+            LEFT JOIN organisations org ON m.organisation_id = org.id
             JOIN students s ON m.student_id = s.id
             JOIN subjects sub ON m.subject_id = sub.id
             JOIN semesters sem ON m.semester_id = sem.id
@@ -71,6 +83,7 @@ class MarkRepository:
         subject_id: Optional[int] = None,
         semester_id: Optional[int] = None,
         exam_type: Optional[str] = None,
+        organisation_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
         limit: int = 50,
@@ -78,6 +91,10 @@ class MarkRepository:
     ) -> List[Dict[str, Any]]:
         conditions = []
         params: List[Any] = []
+
+        if organisation_id is not None:
+            conditions.append("m.organisation_id = %s")
+            params.append(organisation_id)
 
         if student_id:
             conditions.append("m.student_id = %s")
@@ -122,8 +139,10 @@ class MarkRepository:
             SELECT m.*,
                    s.roll_number, s.first_name, s.last_name,
                    sub.subject_code, sub.name AS subject_name, sub.credits,
-                   sem.name AS semester_name
+                   sem.name AS semester_name,
+                   org.name AS organisation_name, org.code AS organisation_code
             FROM marks m
+            LEFT JOIN organisations org ON m.organisation_id = org.id
             JOIN students s ON m.student_id = s.id
             JOIN subjects sub ON m.subject_id = sub.id
             JOIN semesters sem ON m.semester_id = sem.id
@@ -140,9 +159,14 @@ class MarkRepository:
         subject_id: Optional[int] = None,
         semester_id: Optional[int] = None,
         exam_type: Optional[str] = None,
+        organisation_id: Optional[int] = None,
     ) -> int:
         conditions = []
         params: List[Any] = []
+
+        if organisation_id is not None:
+            conditions.append("m.organisation_id = %s")
+            params.append(organisation_id)
 
         if student_id:
             conditions.append("m.student_id = %s")

@@ -19,8 +19,10 @@ from app.services.report_generator import (
 )
 from app.services.report_service import ReportService
 from app.utils.auth import (
+    check_organisation_scope,
     check_student_scope,
     get_current_user,
+    get_effective_organisation_id,
     login_required,
     roles_required,
 )
@@ -165,10 +167,12 @@ def get_marks_report():
                 raise ForbiddenError("You have no assigned subjects to generate reports for.")
             subject_id = assigned[0]["id"]
 
+    org_id = get_effective_organisation_id()
     raw_marks = MarkRepository.list_marks(
         student_id=target_student_id,
         subject_id=subject_id,
         semester_id=semester_id,
+        organisation_id=org_id,
         limit=1000,
     )
     enriched = [enrich_mark(m) for m in raw_marks]
@@ -249,11 +253,13 @@ def get_attendance_report():
             raise ForbiddenError("Access denied: You are not assigned to instruct this subject.")
 
     from app.repositories.attendance_repo import AttendanceRepository
+    org_id = get_effective_organisation_id()
     records = AttendanceRepository.list_attendance(
         student_id=target_student_id,
         subject_id=subject_id,
         date_from=date_from,
         date_to=date_to,
+        organisation_id=org_id,
         limit=1000,
     )
     fmt = request.args.get("format", "json").lower().strip()
@@ -302,7 +308,7 @@ def get_attendance_report():
 
 @reports_bp.route("/subject", methods=["GET"])
 @reports_bp.route("/subject/<int:subject_id>", methods=["GET"])
-@roles_required("Faculty", "Admin")
+@roles_required("Faculty", "Admin", "Super Admin", "Organisation")
 def get_subject_report(subject_id: Optional[int] = None):
     """Generate subject / class-level performance summary."""
     if subject_id is None:
@@ -320,6 +326,8 @@ def get_subject_report(subject_id: Optional[int] = None):
     subject = SubjectRepository.get_by_id(subject_id)
     if not subject:
         raise NotFoundError(f"Subject with ID {subject_id} not found.")
+
+    check_organisation_scope(subject.get("organisation_id"))
 
     # Calculate class aggregates
     sql_marks = """
@@ -392,7 +400,7 @@ def get_subject_report(subject_id: Optional[int] = None):
 
 @reports_bp.route("/semester", methods=["GET"])
 @reports_bp.route("/semester/<int:semester_id>", methods=["GET"])
-@roles_required("Faculty", "Admin")
+@roles_required("Faculty", "Admin", "Super Admin", "Organisation")
 def get_semester_report(semester_id: Optional[int] = None):
     """Generate semester term performance report."""
     if semester_id is None:
@@ -405,6 +413,8 @@ def get_semester_report(semester_id: Optional[int] = None):
     semester = SemesterRepository.get_by_id(semester_id)
     if not semester:
         raise NotFoundError(f"Semester with ID {semester_id} not found.")
+
+    check_organisation_scope(semester.get("organisation_id"))
 
     courses = SubjectRepository.list_subjects(semester_id=semester_id, limit=200)
 
@@ -463,7 +473,7 @@ def get_semester_report(semester_id: Optional[int] = None):
 # 6. Low Attendance Alert (Kept for backwards compatibility)
 # ----------------------------------------------------------------------
 @reports_bp.route("/attendance/low", methods=["GET"])
-@roles_required("Faculty", "Admin")
+@roles_required("Faculty", "Admin", "Super Admin", "Organisation")
 def get_low_attendance():
     """Identify students whose overall attendance is below threshold (default 75%)."""
     threshold_raw = request.args.get("threshold", 75.0)
@@ -472,7 +482,8 @@ def get_low_attendance():
     except (ValueError, TypeError):
         threshold = 75.0
 
-    at_risk = ReportService.get_low_attendance_report(threshold=threshold)
+    org_id = get_effective_organisation_id()
+    at_risk = ReportService.get_low_attendance_report(threshold=threshold, organisation_id=org_id)
     return api_response(
         data=at_risk,
         message=f"Found {len(at_risk)} student(s) with attendance below {threshold}%",

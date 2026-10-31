@@ -148,9 +148,9 @@ class ReportService:
         }
 
     @staticmethod
-    def get_low_attendance_report(threshold: float = 75.0) -> List[Dict[str, Any]]:
-        """Identify students whose overall attendance falls below threshold."""
-        students = StudentRepository.list_students(limit=1000)
+    def get_low_attendance_report(threshold: float = 75.0, organisation_id: Optional[int] = None) -> List[Dict[str, Any]]:
+        """Identify students whose overall attendance falls below threshold, scoped to organisation if specified."""
+        students = StudentRepository.list_students(organisation_id=organisation_id, limit=1000)
         at_risk = []
 
         for st in students:

@@ -56,8 +56,11 @@ def get_faculty_analytics():
 
 
 @analytics_bp.route("/overview", methods=["GET"])
-@roles_required("Admin")
+@login_required
+@roles_required("Admin", "Super Admin", "Organisation")
 def get_admin_overview_analytics():
-    """Get institution-wide KPIs, grade distributions, and department metrics (Admin only)."""
-    analytics = AnalyticsService.get_admin_analytics()
+    """Get institution-wide or organisation-scoped KPIs, grade distributions, and department metrics."""
+    from app.utils.auth import get_effective_organisation_id
+    org_id = get_effective_organisation_id()
+    analytics = AnalyticsService.get_admin_analytics(organisation_id=org_id)
     return api_response(data=analytics, message="Administrative overview analytics generated successfully.")

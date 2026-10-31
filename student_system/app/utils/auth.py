@@ -1,18 +1,23 @@
 """
-Authentication and Role-Based Access Control (RBAC) security module.
-Enforces backend authorization, session/token verification, and IDOR prevention.
+Authentication, Multi-Organisation Scoping, and Role-Based Access Control (RBAC) security module.
+Enforces backend authorization, multi-tenant isolation, session/token verification, and IDOR prevention.
 """
 
 from functools import wraps
-from typing import Callable, List, Optional
+from typing import Callable, List, Optional, Set
 from flask import current_app, g, request, session
 from itsdangerous import BadSignature, SignatureExpired, URLSafeTimedSerializer
 from werkzeug.security import check_password_hash, generate_password_hash
 
 from app.repositories.faculty_repo import FacultyRepository
+from app.repositories.student_repo import StudentRepository
+from app.repositories.subject_repo import SubjectRepository
 from app.repositories.user_repo import UserRepository
-from app.utils.exceptions import ForbiddenError, UnauthorizedError
+from app.utils.exceptions import ForbiddenError, NotFoundError, UnauthorizedError
 from app.utils.responses import error_response
+
+# In-memory revocation set for revoked bearer tokens
+_REVOKED_TOKENS: Set[str] = set()
 
 
 def is_safe_url(target: Optional[str]) -> bool:
@@ -44,8 +49,16 @@ def generate_auth_token(user_id: int) -> str:
     return s.dumps({"user_id": user_id})
 
 
+def revoke_token(token: str) -> None:
+    """Revoke a bearer token so it can no longer be used for authentication."""
+    if token:
+        _REVOKED_TOKENS.add(token.strip())
+
+
 def verify_auth_token(token: str, max_age: int = 86400) -> Optional[int]:
-    """Verify signed bearer token and extract user_id if valid and not expired."""
+    """Verify signed bearer token and extract user_id if valid, not expired, and not revoked."""
+    if not token or token.strip() in _REVOKED_TOKENS:
+        return None
     s = get_serializer()
     try:
         data = s.loads(token, max_age=max_age)
@@ -105,12 +118,121 @@ def login_required(f: Callable) -> Callable:
     return decorated_function
 
 
+# RBAC Permissions Mapping
+RBAC_PERMISSIONS = {
+    # 1. Global Administration (Super Admin / Admin only)
+    "SELECT_ORGANISATION": {"Admin", "Super Admin"},
+    "SWITCH_ORGANISATION": {"Admin", "Super Admin"},
+    "MANAGE_ORGANISATIONS": {"Admin", "Super Admin"},
+    "SUSPEND_ORGANISATIONS": {"Admin", "Super Admin"},
+    "GLOBAL_USER_ACCESS": {"Admin", "Super Admin"},
+    "ASSIGN_ORGANISATION_MEMBERSHIP": {"Admin", "Super Admin"},
+    "REASSIGN_STUDENT_ORGANISATION": {"Admin", "Super Admin"},
+    "MANAGE_GLOBAL_RBAC": {"Admin", "Super Admin"},
+    "GLOBAL_VIEW": {"Admin", "Super Admin"},
+
+    # 2. Organisation Operational Permissions (Scoped to Own Organisation)
+    "ORG_VIEW_DASHBOARD": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_MANAGE_STUDENTS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_MANAGE_FACULTY": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_MANAGE_SUBJECTS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_MANAGE_SEMESTERS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_MANAGE_MARKS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_MANAGE_ATTENDANCE": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_VIEW_REPORTS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_VIEW_ANALYTICS": {"Admin", "Super Admin", "Organisation", "Organization"},
+
+    # 3. Organisation Scoped User Management
+    "ORG_VIEW_USERS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_EDIT_USERS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_CREATE_USERS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_DELETE_USERS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "ORG_ASSIGN_ROLES": {"Admin", "Super Admin", "Organisation", "Organization"},
+
+    # 4. Standard Operational Mappings (for existing decorators)
+    "MANAGE_USERS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "MANAGE_STUDENTS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "MANAGE_SUBJECTS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "MANAGE_SEMESTERS": {"Admin", "Super Admin", "Organisation", "Organization"},
+    "RECORD_MARKS": {"Admin", "Super Admin", "Organisation", "Organization", "Faculty"},
+    "RECORD_ATTENDANCE": {"Admin", "Super Admin", "Organisation", "Organization", "Faculty"},
+    "VIEW_CLASS_ATTENDANCE": {"Admin", "Super Admin", "Organisation", "Organization", "Faculty"},
+    "VIEW_ANALYTICS": {"Admin", "Super Admin", "Organisation", "Organization", "Faculty", "Student"},
+
+    # 5. Student Scoped Permissions
+    "VIEW_OWN_PROFILE": {"Admin", "Super Admin", "Organisation", "Organization", "Faculty", "Student"},
+    "VIEW_OWN_MARKS": {"Admin", "Super Admin", "Organisation", "Organization", "Faculty", "Student"},
+    "VIEW_OWN_ATTENDANCE": {"Admin", "Super Admin", "Organisation", "Organization", "Faculty", "Student"},
+    "MARK_OWN_ATTENDANCE_GPS": {"Student"},
+}
+
+
+def has_permission(user_or_role, permission_name: str) -> bool:
+    """
+    Check if a user dict or role string possesses a given RBAC permission.
+    """
+    if isinstance(user_or_role, dict):
+        role = str(user_or_role.get("role") or "").strip().title()
+    else:
+        role = str(user_or_role or "").strip().title()
+    allowed = RBAC_PERMISSIONS.get(permission_name.upper())
+    if not allowed:
+        return False
+    return role in allowed
+
+
+def can_select_organisation(user: Optional[dict] = None) -> bool:
+    """
+    RBAC check: Only Super Administrator / Admin can select or switch organisations.
+    """
+    if user is None:
+        user = get_current_user()
+    if not user:
+        return False
+    return has_permission(user, "SELECT_ORGANISATION")
+
+
+def permission_required(*permission_names: str) -> Callable:
+    """
+    Decorator enforcing granular RBAC permissions.
+    Checks whether the authenticated user has at least one of the specified permissions.
+    """
+    def decorator(f: Callable) -> Callable:
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user = get_current_user()
+            if not user:
+                return error_response("Authentication required.", "UNAUTHORIZED", 401)
+
+            has_any = any(has_permission(user, perm) for perm in permission_names)
+            if not has_any:
+                user_role = str(user.get("role") or "").strip().title()
+                return error_response(
+                    f"Access forbidden: Role '{user_role}' lacks permission for {', '.join(permission_names)}.",
+                    "FORBIDDEN",
+                    403,
+                )
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
 def roles_required(*allowed_roles: str) -> Callable:
     """
     Decorator enforcing Role-Based Access Control (RBAC).
     Checks backend user role strictly on the Flask server.
+    Supports Super Admin / Admin equivalence and Organisation / Organization equivalence.
     """
-    allowed_set = {str(r).strip().title() for r in allowed_roles}
+    allowed_set = set()
+    for r in allowed_roles:
+        normalized = str(r).strip().title()
+        allowed_set.add(normalized)
+        if normalized in ("Admin", "Super Admin"):
+            allowed_set.add("Admin")
+            allowed_set.add("Super Admin")
+        if normalized in ("Organisation", "Organization"):
+            allowed_set.add("Organisation")
+            allowed_set.add("Organization")
 
     def decorator(f: Callable) -> Callable:
         @wraps(f)
@@ -131,20 +253,89 @@ def roles_required(*allowed_roles: str) -> Callable:
     return decorator
 
 
-def check_student_scope(target_student_id: int):
+def check_organisation_scope(target_organisation_id: Optional[int]) -> bool:
     """
-    Enforces Object-Level Authorization / IDOR Protection.
-    - Admin: Full access to all students.
-    - Faculty: Access only to students enrolled in their assigned subjects.
-    - Student: Access STRICTLY to their own student profile/data.
+    Enforces multi-organisation tenant isolation.
+    - Super Admin / Admin: Global access across all organisations.
+    - Organisation / Faculty / Student: Strictly restricted to their own organisation.
     """
     user = get_current_user()
     if not user:
         raise UnauthorizedError("Authentication required.")
 
     role = str(user.get("role") or "").strip().title()
+    if role in ("Admin", "Super Admin"):
+        return True
 
-    if role == "Admin":
+    if target_organisation_id is None:
+        return True
+
+    user_org_id = user.get("organisation_id")
+    if user_org_id is None or int(user_org_id) != int(target_organisation_id):
+        raise ForbiddenError("Access denied: You do not have permission to access records belonging to another organisation.")
+
+    return True
+
+
+def get_effective_organisation_id() -> Optional[int]:
+    """
+    Resolves the organisation ID that the current user is authorized to query.
+    - Super Admin / Admin (has SELECT_ORGANISATION permission):
+      1. Explicit query parameter `?organisation_id=`
+      2. Explicit header `X-Organisation-ID`
+      3. Active session selection `session["selected_organisation_id"]`
+      4. If none set, returns None (global view across all organisations).
+    - Organisation / Faculty / Student:
+      Strictly restricted to user['organisation_id'] from trusted database profile.
+      Cannot override via query, header, or session.
+    """
+    user = get_current_user()
+    if not user:
+        return None
+
+    if can_select_organisation(user):
+        raw_org = request.args.get("organisation_id") or request.headers.get("X-Organisation-ID")
+        if raw_org is not None and str(raw_org).strip() != "":
+            raw_str = str(raw_org).strip().lower()
+            if raw_str in ("0", "none", "null", "all"):
+                return None
+            if raw_str.isdigit() and int(raw_str) > 0:
+                return int(raw_str)
+
+        selected = session.get("selected_organisation_id")
+        if selected is not None and str(selected).isdigit() and int(selected) > 0:
+            return int(selected)
+
+        return None
+
+    return int(user.get("organisation_id") or 1)
+
+
+def check_student_scope(target_student_id: int) -> bool:
+    """
+    Enforces Object-Level Authorization / IDOR Protection & Organisation Isolation:
+    - Super Admin / Admin: Full access to all students across all organisations.
+    - Organisation: Full access to students belonging to their own organisation.
+    - Faculty: Access only to students enrolled in their assigned subjects within their organisation.
+    - Student: Access STRICTLY to their own student profile/data.
+    """
+    user = get_current_user()
+    if not user:
+        raise UnauthorizedError("Authentication required.")
+
+    student = StudentRepository.get_by_id(target_student_id)
+    if not student:
+        raise NotFoundError(f"Student with ID {target_student_id} not found.")
+
+    role = str(user.get("role") or "").strip().title()
+
+    # Enforce organisation isolation
+    check_organisation_scope(student.get("organisation_id"))
+
+    if role in ("Admin", "Super Admin"):
+        return True
+
+    if role in ("Organisation", "Organization"):
         return True
 
     if role == "Student":
@@ -165,20 +356,31 @@ def check_student_scope(target_student_id: int):
     raise ForbiddenError("Access forbidden.")
 
 
-def check_subject_management_scope(subject_id: int, semester_id: Optional[int] = None):
+def check_subject_management_scope(subject_id: int, semester_id: Optional[int] = None) -> bool:
     """
-    Enforces authorization on course marks/attendance management.
-    - Admin: Full access.
-    - Faculty: Only permitted if assigned to this subject.
+    Enforces authorization on course marks/attendance management & Organisation Isolation:
+    - Super Admin / Admin: Full access.
+    - Organisation: Full access to subjects within their organisation.
+    - Faculty: Only permitted if assigned to this subject within their organisation.
     - Student: Prohibited from management operations.
     """
     user = get_current_user()
     if not user:
         raise UnauthorizedError("Authentication required.")
 
+    subject = SubjectRepository.get_by_id(subject_id)
+    if not subject:
+        raise NotFoundError(f"Subject with ID {subject_id} not found.")
+
+    # Enforce organisation isolation
+    check_organisation_scope(subject.get("organisation_id"))
+
     role = str(user.get("role") or "").strip().title()
 
-    if role == "Admin":
+    if role in ("Admin", "Super Admin"):
+        return True
+
+    if role in ("Organisation", "Organization"):
         return True
 
     if role == "Faculty":

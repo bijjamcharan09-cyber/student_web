@@ -1,5 +1,5 @@
 """
-Semester service handling business logic for academic semesters.
+Semester service handling business logic for academic semesters with organisation scoping.
 """
 
 from typing import Any, Dict, List, Optional
@@ -15,14 +15,16 @@ class SemesterService:
     @staticmethod
     def create_semester(data: Dict[str, Any]) -> Dict[str, Any]:
         cleaned = validate_semester_payload(data, is_update=False)
+        org_id = int(data.get("organisation_id") or cleaned.get("organisation_id") or 1)
+        cleaned["organisation_id"] = org_id
 
-        # Check unique name
-        if SemesterRepository.get_by_name(cleaned["name"]):
-            raise ConflictError(f"Semester with name '{cleaned['name']}' already exists.")
+        # Check unique name within organisation
+        if SemesterRepository.get_by_name(cleaned["name"], organisation_id=org_id):
+            raise ConflictError(f"Semester with name '{cleaned['name']}' already exists in this organisation.")
 
-        # If marking this semester as active, deactivate previous ones
+        # If marking this semester as active, deactivate previous ones for this organisation
         if cleaned.get("is_active"):
-            SemesterRepository.deactivate_all()
+            SemesterRepository.deactivate_all(organisation_id=org_id)
 
         sem_id = SemesterRepository.create(cleaned)
         return SemesterRepository.get_by_id(sem_id)
@@ -44,15 +46,17 @@ class SemesterService:
         if not cleaned:
             return existing
 
+        org_id = int(existing["organisation_id"])
+
         # Check unique name if changed
         if "name" in cleaned and cleaned["name"] != existing["name"]:
-            other = SemesterRepository.get_by_name(cleaned["name"])
+            other = SemesterRepository.get_by_name(cleaned["name"], organisation_id=org_id)
             if other and other["id"] != semester_id:
                 raise ConflictError(f"Semester with name '{cleaned['name']}' already exists.")
 
-        # If setting active to True, deactivate others first
+        # If setting active to True, deactivate others for this organisation
         if cleaned.get("is_active") is True:
-            SemesterRepository.deactivate_all()
+            SemesterRepository.deactivate_all(organisation_id=org_id)
 
         SemesterRepository.update(semester_id, cleaned)
         return SemesterRepository.get_by_id(semester_id)
@@ -63,7 +67,8 @@ class SemesterService:
         if not existing:
             raise NotFoundError(f"Semester with ID {semester_id} not found.")
 
-        SemesterRepository.deactivate_all()
+        org_id = int(existing["organisation_id"])
+        SemesterRepository.deactivate_all(organisation_id=org_id)
         SemesterRepository.update(semester_id, {"is_active": True})
         return SemesterRepository.get_by_id(semester_id)
 
@@ -113,12 +118,14 @@ class SemesterService:
     def list_semesters(
         academic_year: Optional[str] = None,
         is_active: Optional[bool] = None,
+        organisation_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
     ) -> List[Dict[str, Any]]:
         return SemesterRepository.list_semesters(
             academic_year=academic_year,
             is_active=is_active,
+            organisation_id=organisation_id,
             sort_by=sort_by,
             order=order,
         )

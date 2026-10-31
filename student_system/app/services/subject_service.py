@@ -1,5 +1,5 @@
 """
-Subject service handling business logic for academic subjects/courses.
+Subject service handling business logic for academic subjects/courses with organisation scoping.
 """
 
 from typing import Any, Dict, List, Optional
@@ -7,7 +7,7 @@ import math
 from app.repositories.subject_repo import SubjectRepository
 from app.repositories.semester_repo import SemesterRepository
 from app.utils.validators import validate_subject_payload
-from app.utils.exceptions import NotFoundError, ConflictError
+from app.utils.exceptions import NotFoundError, ConflictError, ValidationError
 
 
 class SubjectService:
@@ -16,16 +16,20 @@ class SubjectService:
     @staticmethod
     def create_subject(data: Dict[str, Any]) -> Dict[str, Any]:
         cleaned = validate_subject_payload(data, is_update=False)
+        org_id = int(data.get("organisation_id") or cleaned.get("organisation_id") or 1)
+        cleaned["organisation_id"] = org_id
 
-        # Check unique code
-        if SubjectRepository.get_by_code(cleaned["subject_code"]):
-            raise ConflictError(f"A subject with code '{cleaned['subject_code']}' already exists.")
+        # Check unique code within organisation
+        if SubjectRepository.get_by_code(cleaned["subject_code"], organisation_id=org_id):
+            raise ConflictError(f"A subject with code '{cleaned['subject_code']}' already exists in this organisation.")
 
         # Check semester if provided
         if cleaned.get("semester_id"):
             semester = SemesterRepository.get_by_id(cleaned["semester_id"])
             if not semester:
                 raise NotFoundError(f"Semester with ID {cleaned['semester_id']} does not exist.")
+            if int(semester["organisation_id"]) != org_id:
+                raise ValidationError("Cannot assign semester from another organisation.")
 
         subject_id = SubjectRepository.create(cleaned)
         return SubjectRepository.get_by_id(subject_id)
@@ -47,9 +51,11 @@ class SubjectService:
         if not cleaned:
             return existing
 
+        org_id = int(existing["organisation_id"])
+
         # Check unique code if changed
         if "subject_code" in cleaned and cleaned["subject_code"] != existing["subject_code"]:
-            other = SubjectRepository.get_by_code(cleaned["subject_code"])
+            other = SubjectRepository.get_by_code(cleaned["subject_code"], organisation_id=org_id)
             if other and other["id"] != subject_id:
                 raise ConflictError(f"Subject code '{cleaned['subject_code']}' is already assigned.")
 
@@ -58,6 +64,8 @@ class SubjectService:
             semester = SemesterRepository.get_by_id(cleaned["semester_id"])
             if not semester:
                 raise NotFoundError(f"Semester with ID {cleaned['semester_id']} does not exist.")
+            if int(semester["organisation_id"]) != org_id:
+                raise ValidationError("Cannot assign semester from another organisation.")
 
         SubjectRepository.update(subject_id, cleaned)
         return SubjectRepository.get_by_id(subject_id)
@@ -105,6 +113,7 @@ class SubjectService:
         department: Optional[str] = None,
         semester_id: Optional[int] = None,
         search: Optional[str] = None,
+        organisation_id: Optional[int] = None,
         sort_by: Optional[str] = None,
         order: Optional[str] = None,
         page: int = 1,
@@ -115,6 +124,7 @@ class SubjectService:
             department=department,
             semester_id=semester_id,
             search=search,
+            organisation_id=organisation_id,
             sort_by=sort_by,
             order=order,
             limit=per_page,
@@ -124,6 +134,7 @@ class SubjectService:
             department=department,
             semester_id=semester_id,
             search=search,
+            organisation_id=organisation_id,
         )
         total_pages = math.ceil(total / per_page) if total > 0 else 1
 
