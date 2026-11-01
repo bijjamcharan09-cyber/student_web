@@ -2,7 +2,7 @@
 Application Factory for Student Management System.
 """
 
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, send_from_directory
 from config import config_by_name
 from app.utils.exceptions import AppException
 from app.utils.responses import error_response, api_response
@@ -130,6 +130,15 @@ def create_app(config_name: str = "development") -> Flask:
             data={"status": "healthy", "service": "student-management-api"},
             message="Service is healthy",
         )
+
+    @app.route("/google49d033be384ed276.html", methods=["GET"])
+    def google_site_verification():
+        """Serve Google Search Console verification file publicly without authentication."""
+        import os
+        target_dir = app.static_folder
+        if not os.path.isfile(os.path.join(target_dir, "google49d033be384ed276.html")):
+            target_dir = os.path.dirname(app.root_path)
+        return send_from_directory(target_dir, "google49d033be384ed276.html", mimetype="text/html")
 
     # Global Error Handlers
     @app.errorhandler(AppException)
