@@ -98,13 +98,23 @@ class StudentRepository:
         order: Optional[str] = None,
         limit: int = 10,
         offset: int = 0,
+        faculty_id: Optional[int] = None,
     ) -> List[Dict[str, Any]]:
         conditions = []
         params: List[Any] = []
+        extra_joins = ""
 
         if organisation_id is not None:
             conditions.append("s.organisation_id = %s")
             params.append(organisation_id)
+
+        if faculty_id is not None:
+            extra_joins += """
+                JOIN student_subjects ss ON s.id = ss.student_id
+                JOIN faculty_subjects fs ON ss.subject_id = fs.subject_id AND ss.semester_id = fs.semester_id
+            """
+            conditions.append("fs.faculty_id = %s")
+            params.append(faculty_id)
 
         if search:
             search_param = f"%{search}%"
@@ -143,13 +153,14 @@ class StudentRepository:
             order_clause = f"ORDER BY {sort_map[sort_by]} {direction}"
 
         sql = f"""
-            SELECT s.*, 
+            SELECT DISTINCT s.*, 
                    sem.name AS current_semester_name,
                    sem.semester_number AS current_semester_number,
                    org.name AS organisation_name, org.code AS organisation_code
             FROM students s
             LEFT JOIN organisations org ON s.organisation_id = org.id
             LEFT JOIN semesters sem ON s.current_semester_id = sem.id
+            {extra_joins}
             {where_clause}
             {order_clause}
             LIMIT %s OFFSET %s
@@ -163,13 +174,23 @@ class StudentRepository:
         status: Optional[str] = None,
         semester_id: Optional[int] = None,
         organisation_id: Optional[int] = None,
+        faculty_id: Optional[int] = None,
     ) -> int:
         conditions = []
         params: List[Any] = []
+        extra_joins = ""
 
         if organisation_id is not None:
             conditions.append("s.organisation_id = %s")
             params.append(organisation_id)
+
+        if faculty_id is not None:
+            extra_joins += """
+                JOIN student_subjects ss ON s.id = ss.student_id
+                JOIN faculty_subjects fs ON ss.subject_id = fs.subject_id AND ss.semester_id = fs.semester_id
+            """
+            conditions.append("fs.faculty_id = %s")
+            params.append(faculty_id)
 
         if search:
             search_param = f"%{search}%"
@@ -187,7 +208,7 @@ class StudentRepository:
             params.append(semester_id)
 
         where_clause = f"WHERE {' AND '.join(conditions)}" if conditions else ""
-        sql = f"SELECT COUNT(*) AS total FROM students s {where_clause}"
+        sql = f"SELECT COUNT(DISTINCT s.id) AS total FROM students s {extra_joins} {where_clause}"
         result = db.query_one(sql, tuple(params) if params else None)
         return result["total"] if result else 0
 

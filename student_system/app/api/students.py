@@ -3,6 +3,7 @@ Students API blueprint with strict authentication, RBAC, IDOR protection, and or
 """
 
 from flask import Blueprint, request
+from app.repositories.student_repo import StudentRepository
 from app.services.student_service import StudentService
 from app.utils.auth import (
     check_student_scope,
@@ -19,9 +20,28 @@ students_bp = Blueprint("students", __name__, url_prefix="/api/v1/students")
 
 @students_bp.route("", methods=["GET"])
 @login_required
-@roles_required("Admin", "Super Admin", "Organisation", "Faculty")
+@roles_required("Admin", "Super Admin", "Organisation", "Faculty", "Student")
 def list_students():
     """List students with search, filtering, sorting, and organisation scoping."""
+    user = get_current_user()
+    role = str(user.get("role") or "").strip().title()
+
+    if role == "Student":
+        own_student_id = user.get("student_id")
+        if not own_student_id:
+            return api_response(
+                data=[],
+                message="No student profile associated with this account",
+                meta={"total": 0, "page": 1, "per_page": 1, "total_pages": 0},
+            )
+        student = StudentRepository.get_by_id(int(own_student_id))
+        items = [student] if student else []
+        return api_response(
+            data=items,
+            message="Student retrieved successfully",
+            meta={"total": len(items), "page": 1, "per_page": len(items) or 1, "total_pages": 1 if items else 0},
+        )
+
     org_id = get_effective_organisation_id()
     search = request.args.get("search", "").strip() or None
     status = request.args.get("status", "").strip() or None
@@ -29,6 +49,16 @@ def list_students():
     semester_id = int(sem_id_raw) if sem_id_raw and sem_id_raw.isdigit() else None
     sort_by = request.args.get("sort_by", "").strip().lower() or None
     order = request.args.get("order", "").strip().lower() or None
+
+    faculty_id = None
+    if role == "Faculty":
+        faculty_id = user.get("faculty_id")
+        if not faculty_id:
+            return api_response(
+                data=[],
+                message="Faculty profile not associated with this account",
+                meta={"total": 0, "page": 1, "per_page": 1, "total_pages": 0},
+            )
 
     page, per_page = parse_pagination(request.args.get("page"), request.args.get("per_page"))
 
@@ -41,6 +71,7 @@ def list_students():
         order=order,
         page=page,
         per_page=per_page,
+        faculty_id=faculty_id,
     )
     return api_response(
         data=result["items"],

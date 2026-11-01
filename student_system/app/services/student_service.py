@@ -178,6 +178,7 @@ class StudentService:
         order: Optional[str] = None,
         page: int = 1,
         per_page: int = 10,
+        faculty_id: Optional[int] = None,
     ) -> Dict[str, Any]:
         offset = (page - 1) * per_page
         items = StudentRepository.list_students(
@@ -189,12 +190,14 @@ class StudentService:
             order=order,
             limit=per_page,
             offset=offset,
+            faculty_id=faculty_id,
         )
         total = StudentRepository.count_students(
             search=search,
             status=status,
             semester_id=semester_id,
             organisation_id=organisation_id,
+            faculty_id=faculty_id,
         )
         total_pages = math.ceil(total / per_page) if total > 0 else 1
 

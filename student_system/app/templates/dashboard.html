@@ -1937,6 +1937,9 @@
       if (authToken) {
         options.headers['Authorization'] = `Bearer ${authToken}`;
       }
+      if (currentUser && currentUser.selected_organisation_id) {
+        options.headers['X-Organisation-ID'] = currentUser.selected_organisation_id;
+      }
       return fetch(url, options);
     }
 
@@ -2502,6 +2505,7 @@
       }
       if (tabId === 'organisations') loadOrganisationsTable();
       if (tabId === 'users') loadUsers();
+      if (tabId === 'reports') loadReportsTab();
     }
 
     function showToast(msg, isError = false) {
@@ -2692,15 +2696,70 @@
       }
     }
 
+    // Dedicated Reports Tab Loader
+    async function loadReportsTab() {
+      if (!currentUser) return;
+      await populateReportStudents();
+    }
+
+    async function populateReportStudents() {
+      const select = document.getElementById('exportStudentSelect');
+      if (!select) return;
+
+      if (!currentUser) {
+        select.innerHTML = '<option value="" disabled selected>Please sign in to view students</option>';
+        return;
+      }
+
+      if (currentUser.role === 'Student') {
+        const studentName = (currentUser.student_name || currentUser.full_name || currentUser.username || 'My Profile');
+        const stuId = currentUser.student_id;
+        const roll = currentUser.student_roll ? `${currentUser.student_roll} - ` : '';
+        if (stuId) {
+          select.innerHTML = `<option value="${stuId}" selected>${roll}${studentName}</option>`;
+          select.disabled = true;
+          return;
+        }
+      }
+
+      select.innerHTML = '<option value="" disabled selected>Loading students...</option>';
+
+      try {
+        const res = await authFetch('/api/v1/students?per_page=100');
+        const json = await res.json();
+        if (json.success && Array.isArray(json.data) && json.data.length > 0) {
+          const isStudent = (currentUser.role === 'Student');
+          if (isStudent) {
+            const s = json.data[0];
+            select.innerHTML = `<option value="${s.id}" selected>${s.roll_number} - ${s.first_name} ${s.last_name}</option>`;
+            select.disabled = true;
+          } else {
+            const opts = ['<option value="">-- Select Student --</option>'];
+            json.data.forEach(s => {
+              opts.push(`<option value="${s.id}">${s.roll_number} - ${s.first_name} ${s.last_name}</option>`);
+            });
+            select.innerHTML = opts.join('');
+            select.disabled = false;
+          }
+        } else {
+          select.innerHTML = '<option value="" disabled selected>No students found for this organisation</option>';
+          select.disabled = false;
+        }
+      } catch (err) {
+        console.error('Failed to load students for reports:', err);
+        select.innerHTML = '<option value="" disabled selected>Error loading students</option>';
+      }
+    }
+
     // Populate dropdown lists for forms and reports
     async function populateDropdowns() {
       try {
         const promises = [
-          authFetch('/api/v1/subjects?per_page=100'),
-          authFetch('/api/v1/semesters')
+          authFetch('/api/v1/subjects?per_page=100').catch(() => null),
+          authFetch('/api/v1/semesters').catch(() => null)
         ];
         if (currentUser) {
-          promises.unshift(authFetch('/api/v1/students?per_page=100'));
+          promises.unshift(authFetch('/api/v1/students?per_page=100').catch(() => null));
         }
 
         const responses = await Promise.all(promises);
@@ -2708,7 +2767,11 @@
         let subRes, semRes;
 
         if (currentUser) {
-          stu = (await responses[0].json()).data || [];
+          const stuRes = responses[0];
+          if (stuRes && stuRes.ok) {
+            const stuJson = await stuRes.json().catch(() => ({}));
+            stu = stuJson.data || [];
+          }
           subRes = responses[1];
           semRes = responses[2];
         } else {
@@ -2716,26 +2779,64 @@
           semRes = responses[1];
         }
 
-        const sub = (await subRes.json()).data || [];
-        const sem = (await semRes.json()).data || [];
+        let sub = [];
+        if (subRes && subRes.ok) {
+          const subJson = await subRes.json().catch(() => ({}));
+          sub = subJson.data || [];
+        }
+
+        let sem = [];
+        if (semRes && semRes.ok) {
+          const semJson = await semRes.json().catch(() => ({}));
+          sem = semJson.data || [];
+        }
 
         if (currentUser) {
-          const stuOpts = stu.map(s => `<option value="${s.id}">${s.roll_number} - ${s.first_name} ${s.last_name}</option>`).join('');
-          if (document.getElementById('markStudentSelect')) document.getElementById('markStudentSelect').innerHTML = stuOpts;
-          if (document.getElementById('attStudentSelect')) document.getElementById('attStudentSelect').innerHTML = stuOpts;
-          if (document.getElementById('exportStudentSelect')) document.getElementById('exportStudentSelect').innerHTML = stuOpts;
+          const isStudent = (currentUser.role === 'Student');
+          let exportOpts = '';
+          if (isStudent) {
+            const studentName = (currentUser.student_name || currentUser.full_name || currentUser.username || 'My Profile');
+            const stuId = currentUser.student_id || (stu.length > 0 ? stu[0].id : null);
+            const roll = (stu.length > 0 && stu[0].roll_number) ? `${stu[0].roll_number} - ` : (currentUser.student_roll ? `${currentUser.student_roll} - ` : '');
+            if (stuId) {
+              exportOpts = `<option value="${stuId}" selected>${roll}${studentName}</option>`;
+            } else {
+              exportOpts = '<option value="" disabled selected>No student profile associated</option>';
+            }
+          } else if (stu.length > 0) {
+            exportOpts = '<option value="">-- Select Student --</option>' + stu.map(s => `<option value="${s.id}">${s.roll_number} - ${s.first_name} ${s.last_name}</option>`).join('');
+          } else {
+            exportOpts = '<option value="" disabled selected>No students found for this organisation</option>';
+          }
+
+          const exportSelect = document.getElementById('exportStudentSelect');
+          if (exportSelect) {
+            exportSelect.innerHTML = exportOpts;
+            exportSelect.disabled = isStudent;
+          }
+
+          const markStuOpts = stu.length > 0
+            ? '<option value="">-- Select Student --</option>' + stu.map(s => `<option value="${s.id}">${s.roll_number} - ${s.first_name} ${s.last_name}</option>`).join('')
+            : '<option value="" disabled selected>No students found</option>';
+          if (document.getElementById('markStudentSelect')) document.getElementById('markStudentSelect').innerHTML = markStuOpts;
+          if (document.getElementById('attStudentSelect')) document.getElementById('attStudentSelect').innerHTML = markStuOpts;
+        } else {
+          const exportSelect = document.getElementById('exportStudentSelect');
+          if (exportSelect) {
+            exportSelect.innerHTML = '<option value="" disabled selected>Please sign in to view students</option>';
+          }
         }
 
         const subOpts = sub.map(s => `<option value="${s.id}">${s.subject_code} - ${s.name}</option>`).join('');
-        if (document.getElementById('markSubjectSelect')) document.getElementById('markSubjectSelect').innerHTML = subOpts;
-        if (document.getElementById('attSubjectSelect')) document.getElementById('attSubjectSelect').innerHTML = subOpts;
-        if (document.getElementById('exportSubjectSelect')) document.getElementById('exportSubjectSelect').innerHTML = subOpts;
+        if (document.getElementById('markSubjectSelect')) document.getElementById('markSubjectSelect').innerHTML = '<option value="">-- Select Subject --</option>' + subOpts;
+        if (document.getElementById('attSubjectSelect')) document.getElementById('attSubjectSelect').innerHTML = '<option value="">-- Select Subject --</option>' + subOpts;
+        if (document.getElementById('exportSubjectSelect')) document.getElementById('exportSubjectSelect').innerHTML = '<option value="">-- Select Subject --</option>' + subOpts;
 
         const semOpts = sem.map(s => `<option value="${s.id}">${s.name} (${s.academic_year})</option>`).join('');
-        if (document.getElementById('markSemesterSelect')) document.getElementById('markSemesterSelect').innerHTML = semOpts;
+        if (document.getElementById('markSemesterSelect')) document.getElementById('markSemesterSelect').innerHTML = '<option value="">-- Select Semester --</option>' + semOpts;
         if (document.getElementById('studentSemSelect')) document.getElementById('studentSemSelect').innerHTML = '<option value="">-- None --</option>' + semOpts;
         if (document.getElementById('addSubjectSemesterSelect')) document.getElementById('addSubjectSemesterSelect').innerHTML = '<option value="">-- General / No Semester Assigned --</option>' + semOpts;
-        if (document.getElementById('exportSemesterSelect')) document.getElementById('exportSemesterSelect').innerHTML = semOpts;
+        if (document.getElementById('exportSemesterSelect')) document.getElementById('exportSemesterSelect').innerHTML = '<option value="">-- Select Semester --</option>' + semOpts;
       } catch (e) {
         console.error('Dropdown populate error:', e);
       }
@@ -4765,7 +4866,7 @@
     }
 
     // REPORTS EXPORTS
-    function exportAcademic(format) {
+    async function exportAcademic(format) {
       if (!currentUser) {
         openAuthModal({
           title: 'Sign in to continue',
@@ -4775,10 +4876,31 @@
         });
         return;
       }
-      const stuId = document.getElementById('exportStudentSelect').value;
+      let stuId = document.getElementById('exportStudentSelect')?.value;
+      if (!stuId && currentUser.role === 'Student' && currentUser.student_id) {
+        stuId = currentUser.student_id;
+      }
       if (!stuId) { showToast('Select a student first', true); return; }
+
       if (format === 'json') {
-        window.open(`/api/v1/reports/student/${stuId}?format=json`, '_blank');
+        try {
+          const res = await authFetch(`/api/v1/reports/student/${stuId}?format=json`);
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}));
+            showToast(err.error?.message || 'Failed to generate academic report', true);
+            return;
+          }
+          const json = await res.json();
+          const win = window.open();
+          if (win) {
+            win.document.write('<html><head><title>Academic Report</title></head><body style="margin:20px; font-family:monospace; background:#0f172a; color:#f8fafc;"><pre>' + JSON.stringify(json, null, 2) + '</pre></body></html>');
+            win.document.close();
+          } else {
+            showToast('Pop-up blocked. Please allow pop-ups for this site.', true);
+          }
+        } catch (e) {
+          showToast('Failed to load JSON report', true);
+        }
       } else if (format === 'csv') {
         downloadReport(`/api/v1/reports/student/${stuId}?format=csv`, `student_${stuId}_report.csv`);
       } else if (format === 'pdf') {
