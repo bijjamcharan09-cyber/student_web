@@ -2,7 +2,7 @@
 Application Factory for Student Management System.
 """
 
-from flask import Flask, jsonify, request, render_template, send_from_directory
+from flask import Flask, Response, jsonify, request, render_template, send_from_directory
 from config import config_by_name
 from app.utils.exceptions import AppException
 from app.utils.responses import error_response, api_response
@@ -139,6 +139,30 @@ def create_app(config_name: str = "development") -> Flask:
         if not os.path.isfile(os.path.join(target_dir, "google49d033be384ed276.html")):
             target_dir = os.path.dirname(app.root_path)
         return send_from_directory(target_dir, "google49d033be384ed276.html", mimetype="text/html")
+
+    @app.route("/sitemap.xml", methods=["GET"])
+    def sitemap():
+        """
+        Generate and serve official Google Search Console XML sitemap.
+        Includes only genuinely public, indexable pages.
+        Excludes private/sensitive routes (auth, login, signup, students, marks, attendance,
+        reports, dashboards, admin APIs).
+        """
+        from datetime import datetime, timezone
+
+        canonical_base = "https://student-management-system-sms-m0fe.onrender.com"
+        today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
+
+        xml_content = f"""<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+  <url>
+    <loc>{canonical_base}/</loc>
+    <lastmod>{today}</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>1.0</priority>
+  </url>
+</urlset>"""
+        return Response(xml_content.strip(), mimetype="application/xml")
 
     # Global Error Handlers
     @app.errorhandler(AppException)
