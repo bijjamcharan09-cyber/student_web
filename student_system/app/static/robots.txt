@@ -1,0 +1,15 @@
+User-agent: *
+Allow: /
+Allow: /sitemap.xml
+Disallow: /login
+Disallow: /login.html
+Disallow: /signup
+Disallow: /signup.html
+Disallow: /register
+Disallow: /register.html
+Disallow: /dashboard
+Disallow: /dashboard.html
+Disallow: /api/
+Disallow: /health
+
+Sitemap: https://student-management-system-sms-m0fe.onrender.com/sitemap.xml

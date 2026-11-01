@@ -164,6 +164,30 @@ def create_app(config_name: str = "development") -> Flask:
 </urlset>"""
         return Response(xml_content.strip(), mimetype="application/xml")
 
+    @app.route("/robots.txt", methods=["GET"])
+    def robots():
+        """
+        Serve standard robots.txt for search engine crawlers.
+        Allows indexing of public pages while blocking private forms, dashboards, and APIs.
+        """
+        robots_content = """User-agent: *
+Allow: /
+Allow: /sitemap.xml
+Disallow: /login
+Disallow: /login.html
+Disallow: /signup
+Disallow: /signup.html
+Disallow: /register
+Disallow: /register.html
+Disallow: /dashboard
+Disallow: /dashboard.html
+Disallow: /api/
+Disallow: /health
+
+Sitemap: https://student-management-system-sms-m0fe.onrender.com/sitemap.xml
+"""
+        return Response(robots_content, mimetype="text/plain")
+
     # Global Error Handlers
     @app.errorhandler(AppException)
     def handle_app_exception(error: AppException):
