@@ -1,0 +1,124 @@
+/**
+ * navbar.css - Top Application Navbar & Controls
+ */
+
+/* Top Header Bar */
+header, .app-header {
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border);
+  position: sticky;
+  top: 0;
+  z-index: var(--z-header);
+  box-shadow: var(--shadow-xs);
+}
+
+.header-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 12px 28px;
+  min-height: var(--header-height);
+  width: 100%;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+/* Brand inside header (fallback/mobile) */
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-md);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  text-decoration: none;
+}
+
+.brand svg {
+  color: var(--primary);
+}
+
+/* Mobile Sidebar Hamburger Toggle */
+.mobile-sidebar-toggle {
+  display: none;
+  background: transparent;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 7px;
+  cursor: pointer;
+  color: var(--text-secondary);
+  align-items: center;
+  justify-content: center;
+  transition: all var(--transition-fast);
+}
+
+.mobile-sidebar-toggle:hover {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* Auth Profile & Controls Container */
+.auth-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+#userStatusText {
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  font-weight: var(--font-medium);
+}
+
+/* Super Admin Organisation Selector */
+#orgSelectorWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--bg-subtle);
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+#orgSelectorWrapper label {
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  color: var(--text-secondary);
+  white-space: nowrap;
+}
+
+#superAdminOrgSelect {
+  padding: 4px 8px;
+  font-size: var(--text-xs);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-xs);
+  background: var(--bg-surface);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  cursor: pointer;
+}
+
+#superAdminOrgSelect:focus {
+  border-color: var(--primary);
+}
+
+/* Backdrop for mobile drawer */
+.sidebar-backdrop {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(2px);
+  z-index: calc(var(--z-sidebar) - 1);
+}
+
+.sidebar-backdrop.active {
+  display: block;
+}

@@ -1,0 +1,17 @@
+/**
+ * main.css - Modern Enterprise SaaS Design System Master Stylesheet
+ * Student Management System (SMS)
+ * Architecture: Clean Modular CSS with CSS Custom Properties
+ */
+
+@import url("variables.css");
+@import url("base.css");
+@import url("layout.css");
+@import url("sidebar.css");
+@import url("navbar.css");
+@import url("dashboard.css");
+@import url("tables.css");
+@import url("forms.css");
+@import url("buttons.css");
+@import url("components.css");
+@import url("responsive.css");

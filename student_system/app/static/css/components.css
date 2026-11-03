@@ -1,0 +1,359 @@
+/**
+ * components.css - Reusable UI Components (Modals, Badges, Toast, GPS, Alerts)
+ */
+
+/* =========================================
+   1. DIALOGS & MODALS
+   ========================================= */
+dialog {
+  margin: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  padding: 24px;
+  width: 90%;
+  max-width: 520px;
+  background-color: var(--bg-surface);
+  box-shadow: var(--shadow-modal);
+  color: var(--text-primary);
+}
+
+dialog::backdrop {
+  background-color: rgba(15, 23, 42, 0.5);
+  backdrop-filter: blur(2px);
+}
+
+.dialog-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-muted);
+}
+
+.dialog-header h3 {
+  font-size: var(--text-lg);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+}
+
+/* Guest Modal Variant */
+dialog.guest-modal {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-xl);
+  padding: 0;
+  box-shadow: var(--shadow-modal);
+  max-width: 440px;
+  overflow: hidden;
+}
+
+.guest-modal-content {
+  padding: 24px;
+}
+
+.guest-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.guest-modal-icon {
+  width: 42px;
+  height: 42px;
+  border-radius: var(--radius);
+  background: var(--primary-subtle);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* =========================================
+   2. BADGES & STATUS INDICATORS
+   ========================================= */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  line-height: var(--leading-none);
+}
+
+/* Status variants */
+.badge-active, .badge-present, .badge-grade-a {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+.badge-suspended, .badge-absent, .badge-grade-f {
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+}
+
+.badge-inactive, .badge-late {
+  background-color: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
+}
+
+.badge-excused {
+  background-color: var(--info-bg);
+  color: var(--info-text);
+  border: 1px solid var(--info-border);
+}
+
+/* User Role Badges */
+.role-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 8px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  line-height: var(--leading-none);
+}
+
+.role-admin,
+.role-super_admin {
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+}
+
+.role-faculty {
+  background-color: var(--primary-subtle);
+  color: var(--primary-active);
+  border: 1px solid var(--primary-border);
+}
+
+.role-student {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+.role-guest {
+  background-color: var(--bg-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--border-strong);
+}
+
+/* =========================================
+   3. TOAST NOTIFICATIONS & ALERTS
+   ========================================= */
+#toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: #1e293b;
+  color: #ffffff;
+  padding: 12px 18px;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-lg);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  display: none;
+  z-index: var(--z-toast);
+  max-width: 380px;
+  animation: slideUp 200ms ease-out;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+#alertBox {
+  display: none;
+  padding: 12px 16px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  margin-bottom: 18px;
+}
+
+.alert-danger {
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+}
+
+.alert-success {
+  background-color: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+/* =========================================
+   4. GPS ATTENDANCE SYSTEM
+   ========================================= */
+.gps-panel {
+  padding: 22px;
+  margin-bottom: 24px;
+}
+
+.gps-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.gps-metric-card {
+  background: var(--bg-subtle);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 14px 16px;
+}
+
+.gps-metric-label {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+  font-weight: var(--font-semibold);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.gps-metric-value {
+  font-size: var(--text-base);
+  font-weight: var(--font-semibold);
+  color: var(--text-primary);
+  margin-top: 5px;
+}
+
+.gps-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: var(--font-semibold);
+}
+
+.gps-indicator-success {
+  background: var(--success-bg);
+  color: var(--success-text);
+  border: 1px solid var(--success-border);
+}
+
+.gps-indicator-danger {
+  background: var(--danger-bg);
+  color: var(--danger-text);
+  border: 1px solid var(--danger-border);
+}
+
+.gps-indicator-warning {
+  background: var(--warning-bg);
+  color: var(--warning-text);
+  border: 1px solid var(--warning-border);
+}
+
+.gps-indicator-neutral {
+  background: var(--bg-muted);
+  color: var(--text-secondary);
+  border: 1px solid var(--border);
+}
+
+.session-card {
+  padding: 18px 20px;
+  margin-bottom: 14px;
+}
+
+.live-clock-badge {
+  font-family: var(--font-mono);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  color: var(--primary);
+  letter-spacing: -0.02em;
+}
+
+/* =========================================
+   5. AUTHENTICATION PAGES (Login / Signup)
+   ========================================= */
+.auth-page-wrapper {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  padding: 32px 16px;
+  background-color: var(--bg-canvas);
+}
+
+.auth-card {
+  background: var(--bg-surface);
+  width: 100%;
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-md);
+  border: 1px solid var(--border);
+  padding: 32px;
+}
+
+.auth-card-sm { max-width: 420px; }
+.auth-card-md { max-width: 480px; }
+.auth-card-lg { max-width: 580px; }
+
+.brand-header {
+  text-align: center;
+  margin-bottom: 24px;
+}
+
+.brand-logo {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  font-size: var(--text-xl);
+  font-weight: var(--font-bold);
+  color: var(--primary);
+  text-decoration: none;
+}
+
+.brand-sub {
+  color: var(--text-muted);
+  font-size: var(--text-sm);
+  margin-top: 6px;
+}
+
+/* Role Selector on Register */
+.role-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+  margin-bottom: 22px;
+  background: var(--bg-muted);
+  padding: 4px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+}
+
+.role-btn {
+  background: transparent;
+  border: none;
+  padding: 8px 10px;
+  font-size: var(--text-xs);
+  font-weight: var(--font-medium);
+  color: var(--text-secondary);
+  border-radius: var(--radius-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  text-align: center;
+}
+
+.role-btn.active {
+  background: var(--bg-surface);
+  color: var(--primary);
+  box-shadow: var(--shadow-xs);
+  font-weight: var(--font-semibold);
+}

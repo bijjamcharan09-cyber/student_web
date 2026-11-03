@@ -1,0 +1,118 @@
+/**
+ * variables.css - Modern Enterprise SaaS Design Tokens
+ * Student Management System Design System
+ */
+
+:root {
+  /* Brand Primary */
+  --primary: #2563eb;
+  --primary-hover: #1d4ed8;
+  --primary-active: #1e40af;
+  --primary-subtle: #eff6ff;
+  --primary-border: #bfdbfe;
+  --primary-contrast: #ffffff;
+
+  /* Neutral Palette (Slate/Zinc) */
+  --bg-canvas: #f8fafc;
+  --bg-surface: #ffffff;
+  --bg-muted: #f1f5f9;
+  --bg-subtle: #f8fafc;
+  --bg-hover: #f1f5f9;
+
+  /* Borders */
+  --border: #e2e8f0;
+  --border-muted: #f1f5f9;
+  --border-strong: #cbd5e1;
+  --border-focus: #2563eb;
+
+  /* Typography Colors */
+  --text: #0f172a;
+  --text-primary: #0f172a;
+  --text-secondary: #475569;
+  --text-muted: #64748b;
+  --text-tertiary: #94a3b8;
+  --text-inverse: #ffffff;
+
+  /* Semantic - Success */
+  --success: #16a34a;
+  --success-bg: #f0fdf4;
+  --success-border: #bbf7d0;
+  --success-text: #166534;
+
+  /* Semantic - Warning */
+  --warning: #d97706;
+  --warning-bg: #fffbeb;
+  --warning-border: #fde68a;
+  --warning-text: #92400e;
+
+  /* Semantic - Danger / Destructive */
+  --danger: #dc2626;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+  --danger-text: #991b1b;
+  --danger-hover: #b91c1c;
+
+  /* Semantic - Info */
+  --info: #0284c7;
+  --info-bg: #f0f9ff;
+  --info-border: #bae6fd;
+  --info-text: #0369a1;
+
+  /* Typography */
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+
+  --text-xs: 0.75rem;     /* 12px */
+  --text-sm: 0.844rem;    /* 13.5px */
+  --text-base: 0.938rem;  /* 15px */
+  --text-md: 1rem;        /* 16px */
+  --text-lg: 1.125rem;    /* 18px */
+  --text-xl: 1.25rem;     /* 20px */
+  --text-2xl: 1.5rem;     /* 24px */
+  --text-3xl: 1.875rem;   /* 30px */
+
+  --font-normal: 400;
+  --font-medium: 500;
+  --font-semibold: 600;
+  --font-bold: 700;
+
+  --leading-none: 1;
+  --leading-tight: 1.25;
+  --leading-normal: 1.5;
+  --leading-relaxed: 1.625;
+
+  /* Radii */
+  --radius-xs: 3px;
+  --radius-sm: 5px;
+  --radius: 8px;
+  --radius-md: 8px;
+  --radius-lg: 10px;
+  --radius-xl: 14px;
+  --radius-full: 9999px;
+
+  /* Natural Shadows (No glowing / AI neon) */
+  --shadow-xs: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-sm: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.08), 0 1px 2px -1px rgb(0 0 0 / 0.06);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-modal: 0 20px 25px -5px rgb(0 0 0 / 0.12), 0 8px 10px -6px rgb(0 0 0 / 0.06);
+
+  /* Layout Dimensions */
+  --sidebar-width: 256px;
+  --sidebar-collapsed-width: 72px;
+  --header-height: 60px;
+  --max-content-width: 1320px;
+
+  /* Transitions */
+  --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-normal: 200ms cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* Z-Index Hierarchy */
+  --z-base: 1;
+  --z-header: 40;
+  --z-sidebar: 50;
+  --z-backdrop: 60;
+  --z-modal: 70;
+  --z-toast: 100;
+}

@@ -1,0 +1,228 @@
+/**
+ * responsive.css - Responsive Breakpoints & Adaptive Layouts
+ * Breakpoints:
+ * - Desktop: >= 1200px
+ * - Small Desktop / Tablet Landscape: 992px - 1199px
+ * - Tablet Portrait / Mobile: < 992px
+ * - Small Mobile: < 640px
+ * - Micro Mobile: < 480px
+ */
+
+/* ==========================================================================
+   Tablet Landscape & Medium Screens (< 1200px)
+   ========================================================================== */
+@media (max-width: 1199px) {
+  .stats-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .analytics-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Tablet Portrait & Mobile Drawer (< 992px)
+   ========================================================================== */
+@media (max-width: 991px) {
+  /* Show mobile hamburger toggle */
+  .mobile-sidebar-toggle {
+    display: inline-flex;
+  }
+
+  /* Transform sidebar into an off-canvas drawer */
+  .app-sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: 280px;
+    height: 100%;
+    z-index: var(--z-sidebar);
+    transform: translateX(-100%);
+    box-shadow: var(--shadow-lg);
+    background-color: var(--bg-surface);
+  }
+
+  .app-sidebar.open {
+    transform: translateX(0);
+  }
+
+  /* Full-width main container */
+  .app-main {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .container {
+    padding: 16px 20px;
+  }
+
+  .header-content {
+    padding: 10px 18px;
+  }
+
+  /* Make auth-bar wrap cleanly */
+  .auth-bar {
+    gap: 8px;
+  }
+
+  #orgSelectorWrapper {
+    order: 10;
+    width: 100%;
+    justify-content: space-between;
+    margin-top: 4px;
+  }
+
+  /* Card layouts adapt */
+  .card-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
+  }
+
+  .card-actions {
+    width: 100%;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+  }
+
+  /* Toolbars and filter rows */
+  .toolbar {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+  }
+
+  .toolbar input,
+  .toolbar select,
+  .toolbar .form-control {
+    width: 100%;
+  }
+
+  /* GPS grid */
+  .gps-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* Dialogs fit mobile screens */
+  dialog {
+    width: 94vw;
+    max-width: 560px;
+  }
+}
+
+/* ==========================================================================
+   Small Mobile (< 640px)
+   ========================================================================== */
+@media (max-width: 639px) {
+  .header-content {
+    padding: 8px 12px;
+  }
+
+  .container {
+    padding: 12px;
+  }
+
+  /* Single-column metrics on small phones */
+  .stats-grid {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+
+  .stat-card {
+    padding: 14px 16px;
+  }
+
+  .stat-val {
+    font-size: 1.5rem;
+  }
+
+  /* Dialog adjustments */
+  dialog {
+    width: 96vw;
+    border-radius: var(--radius-md);
+  }
+
+  .dialog-header {
+    padding: 14px 16px;
+  }
+
+  .dialog-body {
+    padding: 14px 16px;
+  }
+
+  .dialog-footer {
+    padding: 12px 16px;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .dialog-footer .btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Buttons & touch targets */
+  .btn {
+    min-height: 40px;
+  }
+
+  .btn-sm {
+    min-height: 34px;
+  }
+
+  /* Table wrapper notice */
+  .table-container {
+    border-radius: var(--radius-sm);
+  }
+
+  /* Forms & Auth pages */
+  .auth-card {
+    padding: 24px 18px;
+  }
+
+  .role-selector {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* ==========================================================================
+   Print Styles
+   ========================================================================== */
+@media print {
+  .app-sidebar,
+  .app-header,
+  .mobile-sidebar-toggle,
+  .sidebar-backdrop,
+  .toolbar,
+  .card-actions,
+  .btn,
+  dialog {
+    display: none !important;
+  }
+
+  body, .app-shell, .app-main, .container {
+    background: #ffffff !important;
+    color: #000000 !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+  }
+
+  .card {
+    border: 1px solid #cccccc !important;
+    box-shadow: none !important;
+    break-inside: avoid;
+  }
+
+  table {
+    width: 100% !important;
+    border-collapse: collapse !important;
+  }
+
+  th, td {
+    border: 1px solid #dddddd !important;
+    color: #000000 !important;
+  }
+}

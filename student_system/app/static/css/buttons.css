@@ -1,0 +1,126 @@
+/**
+ * buttons.css - Button Styles & Interaction States
+ */
+
+/* Base Button */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  height: 36px;
+  padding: 0 14px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-medium);
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  cursor: pointer;
+  white-space: nowrap;
+  text-decoration: none;
+  background-color: var(--primary);
+  color: var(--primary-contrast);
+  box-shadow: var(--shadow-xs);
+  transition: background-color var(--transition-fast), border-color var(--transition-fast), color var(--transition-fast), box-shadow var(--transition-fast);
+  user-select: none;
+}
+
+.btn:hover {
+  background-color: var(--primary-hover);
+  color: var(--primary-contrast);
+  text-decoration: none;
+  box-shadow: var(--shadow-sm);
+}
+
+.btn:active {
+  background-color: var(--primary-active);
+  transform: translateY(1px);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+.btn:disabled, .btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* Secondary / Neutral Button */
+.btn-secondary {
+  background-color: var(--bg-surface);
+  color: var(--text-secondary);
+  border-color: var(--border);
+  box-shadow: var(--shadow-xs);
+}
+
+.btn-secondary:hover {
+  background-color: var(--bg-hover);
+  color: var(--text-primary);
+  border-color: var(--border-strong);
+}
+
+.btn-secondary:active {
+  background-color: var(--bg-muted);
+}
+
+/* Success Button */
+.btn-success {
+  background-color: var(--success);
+  color: var(--text-inverse);
+  border-color: transparent;
+}
+
+.btn-success:hover {
+  background-color: #15803d;
+  color: var(--text-inverse);
+}
+
+/* Danger / Destructive Button */
+.btn-danger {
+  background-color: var(--danger-bg);
+  color: var(--danger-text);
+  border-color: var(--danger-border);
+}
+
+.btn-danger:hover {
+  background-color: #fee2e2;
+  color: #7f1d1d;
+  border-color: #fca5a5;
+}
+
+/* Small Button (for tables and toolbar) */
+.btn-sm {
+  height: 28px;
+  padding: 0 10px;
+  font-size: var(--text-xs);
+  border-radius: var(--radius-xs);
+}
+
+/* Full Width Submit Button */
+.btn-submit {
+  width: 100%;
+  height: 42px;
+  font-size: var(--text-sm);
+  font-weight: var(--font-semibold);
+  margin-top: 12px;
+}
+
+/* Close Button (Icon only) */
+.close-btn {
+  background: transparent;
+  border: none;
+  font-size: 1.25rem;
+  line-height: 1;
+  color: var(--text-muted);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: var(--radius-xs);
+  transition: color var(--transition-fast), background-color var(--transition-fast);
+}
+
+.close-btn:hover {
+  color: var(--text-primary);
+  background-color: var(--bg-hover);
+}

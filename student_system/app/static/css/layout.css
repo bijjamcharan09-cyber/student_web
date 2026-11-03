@@ -1,0 +1,109 @@
+/**
+ * layout.css - Main Shell & Content Layout Structure
+ */
+
+/* Main layout wrapper */
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+  background-color: var(--bg-canvas);
+}
+
+/* Main workspace area to the right of sidebar */
+.app-main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  transition: margin-left var(--transition-normal);
+}
+
+/* Page container (maintains full compatibility with existing .container class) */
+.container {
+  max-width: var(--max-content-width);
+  width: 100%;
+  margin: 0 auto;
+  padding: 24px 28px 60px 28px;
+}
+
+/* Page header banner / intro section */
+.page-intro {
+  margin-bottom: 24px;
+}
+
+.page-title {
+  font-size: var(--text-2xl);
+  font-weight: var(--font-bold);
+  color: var(--text-primary);
+  letter-spacing: -0.02em;
+}
+
+.page-description {
+  font-size: var(--text-sm);
+  color: var(--text-muted);
+  margin-top: 4px;
+}
+
+/* Tab contents */
+.tab-content {
+  display: none;
+  animation: fadeIn 150ms ease-out;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.7; transform: translateY(2px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Card primitives */
+.card, .stat-card, .analytics-card, .report-card, .session-card, .gps-panel {
+  background: var(--bg-surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xs);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.card:hover, .stat-card:hover {
+  box-shadow: var(--shadow-sm);
+}
+
+/* Toolbar & action header */
+.toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 18px;
+}
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+/* Grid utilities */
+.grid-2 {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.grid-4 {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 16px;
+}
